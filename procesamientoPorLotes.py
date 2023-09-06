@@ -12,28 +12,54 @@ global_counter = 0
 batch_counter = 0
 finished_process_list = []
 process_captured = 0
+amount_of_processes = 0
+is_captured = False
 
-
-def firstScreen():
-    global id_collection
-    global batch_collection
-    global aux_collection
-    global process_count 
-    global process_captured
+def assignation():
+    global amount_of_processes
     
-    # Window setup
-    # window = tk.Tk()
     window = ttk.Window()
-    window.rowconfigure((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16),weight = 0)
-    window.columnconfigure(0, weight= 0)
-    window.columnconfigure(1, weight= 3)
-    window.columnconfigure(2, weight= 1)
     window.title('Procesamiento por lotes')
     window.state('zoomed')
 
     # Title
     title_label = ttk.Label(master=window, text="Procesamiento por lotes",font="Calibri 24 bold")
+    title_label.pack(pady=20)
+    
+    amount_of_processes_label = ttk.Label(master = window, text="Procesos a capturar", font='Arial 13')
+    amount_of_processes_text = ttk.Entry(master = window, textvariable=amount_of_processes)
+    amount_of_processes_send = ttk.Button(master = window, command = lambda: firstScreen(window, amount_of_processes_label, amount_of_processes_text, amount_of_processes_send,title_label), text="OK")
+    amount_of_processes_label.pack(pady=5)
+    amount_of_processes_text.pack(pady=3)
+    amount_of_processes_send.pack(pady=10)
+    
+    window.mainloop()
+    
+
+def firstScreen(window,amount_of_processes_label, amount_of_processes_text, amount_of_processes_send,title_label):
+    global id_collection
+    global batch_collection
+    global aux_collection
+    global process_count 
+    global process_captured
+    global amount_of_processes
+    global is_captured
+    
+    amount_of_processes = amount_of_processes_text.get()
+    amount_of_processes = int(amount_of_processes)
+    
+    amount_of_processes_label.pack_forget()
+    amount_of_processes_text.pack_forget()
+    amount_of_processes_send.pack_forget()
+    
+    window.rowconfigure((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16),weight = 0)
+    window.columnconfigure(0, weight= 0)
+    window.columnconfigure(1, weight= 3)
+    window.columnconfigure(2, weight= 1)
+    
     title_label.grid(row = 0, column = 0, columnspan = 3, pady = 20)
+    
+    # Window setup
     process_captured_label = ttk.Label(window, text=f"Procesos capturados: {process_captured}", font="Arial 13")
     process_captured_label.grid(row = 1, column=0,pady=20,padx = 15)
     name_data = tk.StringVar()
@@ -44,61 +70,45 @@ def firstScreen():
 
     operation_title = ttk.Label(master = window, text='Operación a realizar', font="Arial 13")
     operation_title.grid(row = 3, column = 1, pady = 5)
-    # operation_title.pack(pady = 8)
 
     first_data = tk.IntVar()
     first_data_label = ttk.Label(master = window, text = "Primer dato")
     first_data_label.grid(row = 4, column = 1, pady = 5, sticky='s')
-    # first_data_label.pack(pady = 3)
     first_data_text = ttk.Entry(master = window, textvariable = first_data)
     first_data_text.grid(row = 5, column = 1, pady = 5)
-    
-    # first_data_text.pack()
 
     operation_data = tk.StringVar()
     operation_label = ttk.Label(master = window, text = "Operación")
     operation_label.grid(row = 6, column = 1, pady = 5, sticky='s')
-    # operation_label.pack(pady = 3)
     operation_text = ttk.Entry(master = window, textvariable = operation_data)
     operation_text.grid(row = 7, column = 1, pady = 5)
-    # operation_text.pack()
     
     second_data = tk.IntVar()
     second_data_label = ttk.Label(master = window, text = "Segundo dato")
     second_data_label.grid(row = 8, column = 1, pady = 5, sticky='s')
-    # second_data_label.pack(pady = 3)
     second_data_text = ttk.Entry(master = window, textvariable = second_data)
     second_data_text.grid(row = 9, column = 1, pady = 5)
-    # second_data_text.pack()
 
     estimated_time_variable = tk.IntVar()
     estimated_time_label = ttk.Label(master = window, text='Tiempo estimado', font = "Arial 13")
     estimated_time_label.grid(row = 10, column = 1, pady = 5, sticky='s')
-    # estimated_time_label.pack(pady = 8)
     estimated_time_text = ttk.Entry(master = window,textvariable=estimated_time_variable)
     estimated_time_text.grid(row = 11, column = 1, pady = 5)
-    # estimated_time_text.pack()
 
     ID_data = tk.IntVar()
     ID_label = ttk.Label(master = window, text='Número de programa', font = "Arial 13")
     ID_label.grid(row = 12, column = 1, pady = 5, sticky='s')
-    # ID_label.pack(pady = 8)
     ID_text = ttk.Entry(master = window, textvariable = ID_data)
     ID_text.grid(row = 13, column = 1, pady = 5)
     
-    # ID_text.pack()
-    
-    # Send button
-    send_button = ttk.Button(master = window, text="Enviar proceso", command = lambda:verifications(estimated_time_text,first_data_text,second_data_text,ID_text,operation_text,name_text,window,process_captured_label), style="success")
+    send_button = ttk.Button(master = window, text="Enviar proceso", command = lambda: verifications(estimated_time_text,first_data_text,second_data_text,ID_text,operation_text,name_text,window,process_captured_label,send_button), style="success")
     send_button.grid(row = 14, column = 1, pady = 5)
-    # send_button.pack(pady = 10)
-    finish_button = ttk.Button(master = window, text = "Terminar captura", command = lambda: destroyFirstScreen(window))
-    finish_button.grid(row = 15, column = 1, pady = 5)
-    # .pack(pady = 20)
+    
+    # if is_captured == True:
+    #     destroyFirstScreen(window)
+    #     secondScreen()
 
-    window.mainloop()
-
-def verifications(estimated_time_text,first_data_text,second_data_text,ID_text,operation_text,name_text,window,process_captured_label):
+def verifications(estimated_time_text,first_data_text,second_data_text,ID_text,operation_text,name_text,window,process_captured_label,send_button):
     global process_count
     global id_collection
     global batch_collection
@@ -124,43 +134,53 @@ def verifications(estimated_time_text,first_data_text,second_data_text,ID_text,o
     state_label = ttk.Label(master = window)
     
     is_correct = True
-    
-    if estimated_time_variable <= 0:
-        is_correct = False
-        state_label['text'] = "El tiempo tiene que ser mayor a 0"   
-    elif operation_data == "/" or operation_data == "%":
-        if second_data == 0:
+    if process_captured <= amount_of_processes -1:
+        if estimated_time_variable <= 0:
             is_correct = False
-            state_label['text'] = "No se puede dividir entre 0"
-    
-    for i in range(len(id_collection)):
-        if ID_data == id_collection[i]:
-            is_correct = False
-            state_label['text'] = "El ID está repetido"
-    
-    if is_correct == True:
-        state_label.configure(background = "#19FF40", font = "Calibri 15", foreground="black")
-        state_label['text'] = "Datos correctamente capturados"
-        id_collection.append(ID_data)
-        process_captured += 1
-        process_captured_label.grid_forget()
-        process_captured_label = ttk.Label(window, text=f"Procesos capturados: {process_captured}", font="Arial 13").grid(row = 1, column=0,pady=20,padx = 15)
-        process = Process(name_data, operation_data, first_data, second_data, estimated_time_variable, ID_data,batch_counter)
-        aux_collection.append(process)
-        process_count += 1
-    else:
-        state_label.configure(background = "#FF5533", font = "Calibri 15", foreground="white") 
-    
-    if process_count%5 == 0 and is_correct == True:
-        batch_counter += 1
-        batch_collection.append(aux_collection.copy())
-        for i in range(5):
-            aux_collection.pop()
-        state_label.configure(background = "#e6e600", font = "Calibri 15", foreground="black")
-        state_label['text'] = "Lote completado"
+            state_label['text'] = "El tiempo tiene que ser mayor a 0"   
+        elif operation_data == "/" or operation_data == "%":
+            if second_data == 0:
+                is_correct = False
+                state_label['text'] = "No se puede dividir entre 0"
         
-    state_label.grid(row = 16, column = 1, pady = 50)
-    state_label.after(2000,state_label.grid_forget)
+        for i in range(len(id_collection)):
+            if ID_data == id_collection[i]:
+                is_correct = False
+                state_label['text'] = "El ID está repetido"
+        
+        if is_correct == True:
+            state_label.configure(background = "#19FF40", font = "Calibri 15", foreground="black")
+            state_label['text'] = "Datos correctamente capturados"
+            id_collection.append(ID_data)
+            process_captured += 1
+            process_captured_label.grid_forget()
+            process_captured_label = ttk.Label(window, text=f"Procesos capturados: {process_captured}", font="Arial 13").grid(row = 1, column=0,pady=20,padx = 15)
+            process = Process(name_data, operation_data, first_data, second_data, estimated_time_variable, ID_data,batch_counter)
+            aux_collection.append(process)
+            process_count += 1
+        else:
+            state_label.configure(background = "#FF5533", font = "Calibri 15", foreground="white") 
+        
+        if process_count%5 == 0 and is_correct == True:
+            batch_counter += 1
+            batch_collection.append(aux_collection.copy())
+            for i in range(5):
+                aux_collection.pop()
+            state_label.configure(background = "#e6e600", font = "Calibri 15", foreground="black")
+            state_label['text'] = "Lote completado"
+            
+        state_label.grid(row = 16, column = 1, pady = 50)
+        state_label.after(2000,state_label.grid_forget)
+        
+        if process_captured == amount_of_processes:
+            state_label['text'] = 'Último proceso capturado, presione terminar'
+            state_label.configure(background = "#FF5533", font = "Calibri 15", foreground="white")
+            state_label.grid(row = 16, column = 1, pady = 50)
+            send_button.configure(text='Terminar',bootstyle="danger")
+            state_label.after(2000,state_label.grid_forget)
+    else: 
+        destroyFirstScreen(window)
+        secondScreen()
     
 def destroyFirstScreen(window):
     global aux_collection
@@ -281,9 +301,9 @@ def counter(process_to_show, TTE, TRE, global_counter, global_counter_container,
             finished_process.configure(state="disabled")
             executing_process.configure(state="disabled")
             batches.configure(state="disabled")
-
-firstScreen()
-secondScreen()
+assignation()
+# firstScreen()
+# secondScreen()
 ######################################################################### First screen #########################################################
 
 
