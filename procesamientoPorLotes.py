@@ -103,10 +103,6 @@ def firstScreen(window,amount_of_processes_label, amount_of_processes_text, amou
     
     send_button = ttk.Button(master = window, text="Enviar proceso", command = lambda: verifications(estimated_time_text,first_data_text,second_data_text,ID_text,operation_text,name_text,window,process_captured_label,send_button), style="success")
     send_button.grid(row = 14, column = 1, pady = 5)
-    
-    # if is_captured == True:
-    #     destroyFirstScreen(window)
-    #     secondScreen()
 
 def verifications(estimated_time_text,first_data_text,second_data_text,ID_text,operation_text,name_text,window,process_captured_label,send_button):
     global process_count
@@ -199,7 +195,7 @@ def secondScreen():
     global global_counter
     global window2
     
-    # window2 = tk.Tk()
+
     window2 = ttk.Window()
     
     window2.title('Procesamiento por lotes')
@@ -301,15 +297,5 @@ def counter(process_to_show, TTE, TRE, global_counter, global_counter_container,
             finished_process.configure(state="disabled")
             executing_process.configure(state="disabled")
             batches.configure(state="disabled")
+
 assignation()
-# firstScreen()
-# secondScreen()
-######################################################################### First screen #########################################################
-
-
-########################################################################## Second screen #################################################################
-
-
-
-
-
