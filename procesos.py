@@ -9,6 +9,7 @@ class Process:
         self.TTE = 0
         self.belonging_batch = belonging_batch
         self.result = 0
+        self.error = False
     
     # def __init__(self):
     #     print("Class created")
@@ -38,6 +39,7 @@ Tiempo transcurrido: {self.TTE}"""
             result = float(result)
             return result
         elif error == True:
+            self.error = error
             result = "ERROR"
             return result
         

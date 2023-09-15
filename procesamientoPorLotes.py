@@ -20,6 +20,7 @@ is_captured = False
 is_paused = False
 process_to_show = 0
 error = False
+is_interrupted = False
 
 def assignation():
     global amount_of_processes
@@ -41,75 +42,6 @@ def assignation():
     
     
     window.mainloop()
-    
-
-# def firstScreen(window,amount_of_processes_label, amount_of_processes_text, amount_of_processes_send,title_label):
-#     global id_collection
-#     global batch_collection
-#     global aux_collection
-#     global process_count 
-#     global process_captured
-#     global amount_of_processes
-#     global is_captured
-    
-#     amount_of_processes = amount_of_processes_text.get()
-#     amount_of_processes = int(amount_of_processes)
-    
-#     amount_of_processes_label.pack_forget()
-#     amount_of_processes_text.pack_forget()
-#     amount_of_processes_send.pack_forget()
-    
-#     window.rowconfigure((0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16),weight = 0)
-#     window.columnconfigure(0, weight= 0)
-#     window.columnconfigure(1, weight= 3)
-#     window.columnconfigure(2, weight= 1)
-    
-#     title_label.grid(row = 0, column = 0, columnspan = 3, pady = 20)
-    
-#     # Window setup
-#     process_captured_label = ttk.Label(window, text=f"Procesos capturados: {process_captured}", font="Arial 13")
-#     process_captured_label.grid(row = 1, column=0,pady=20,padx = 15)
-#     name_data = tk.StringVar()
-#     name_label = ttk.Label(master = window, text='Nombre del programador', font = "Arial 13")
-#     name_label.grid(row = 1, column = 1, pady = 5, sticky='s')
-#     name_text = ttk.Entry(master = window, textvariable = name_data)
-#     name_text.grid(row = 2, column = 1, pady = 5)
-
-#     operation_title = ttk.Label(master = window, text='Operación a realizar', font="Arial 13")
-#     operation_title.grid(row = 3, column = 1, pady = 5)
-
-#     first_data = tk.IntVar()
-#     first_data_label = ttk.Label(master = window, text = "Primer dato")
-#     first_data_label.grid(row = 4, column = 1, pady = 5, sticky='s')
-#     first_data_text = ttk.Entry(master = window, textvariable = first_data)
-#     first_data_text.grid(row = 5, column = 1, pady = 5)
-
-#     operation_data = tk.StringVar()
-#     operation_label = ttk.Label(master = window, text = "Operación")
-#     operation_label.grid(row = 6, column = 1, pady = 5, sticky='s')
-#     operation_text = ttk.Entry(master = window, textvariable = operation_data)
-#     operation_text.grid(row = 7, column = 1, pady = 5)
-    
-#     second_data = tk.IntVar()
-#     second_data_label = ttk.Label(master = window, text = "Segundo dato")
-#     second_data_label.grid(row = 8, column = 1, pady = 5, sticky='s')
-#     second_data_text = ttk.Entry(master = window, textvariable = second_data)
-#     second_data_text.grid(row = 9, column = 1, pady = 5)
-
-#     estimated_time_variable = tk.IntVar()
-#     estimated_time_label = ttk.Label(master = window, text='Tiempo estimado', font = "Arial 13")
-#     estimated_time_label.grid(row = 10, column = 1, pady = 5, sticky='s')
-#     estimated_time_text = ttk.Entry(master = window,textvariable=estimated_time_variable)
-#     estimated_time_text.grid(row = 11, column = 1, pady = 5)
-
-#     ID_data = tk.IntVar()
-#     ID_label = ttk.Label(master = window, text='Número de programa', font = "Arial 13")
-#     ID_label.grid(row = 12, column = 1, pady = 5, sticky='s')
-#     ID_text = ttk.Entry(master = window, textvariable = ID_data)
-#     ID_text.grid(row = 13, column = 1, pady = 5)
-    
-#     send_button = ttk.Button(master = window, text="Enviar proceso", command = lambda: verifications(estimated_time_text,first_data_text,second_data_text,ID_text,operation_text,name_text,window,process_captured_label,send_button), style="success")
-#     send_button.grid(row = 14, column = 1, pady = 5)
 
 def verifications(window,amount_of_processes_text,amount_of_processes_label, amount_of_processes_send,title_label):
     global aux_collection
@@ -167,10 +99,6 @@ def secondScreen(window):
     global aux_collection
     global global_counter
     global process_to_show
-    # global window
-    
-
-    # window2 = ttk.Window()
     
     window.title('Procesamiento por lotes')
     window.state('zoomed')
@@ -215,31 +143,33 @@ def secondScreen(window):
     TTE = 0
     TRE = process_to_show.estimated_time
     
-    counter(window, TTE, TRE, global_counter, global_counter_container,executing_process,batches,batch_pendient_title,batch_collection,batches_counter,finished_process, finished_process_list)
+    counter(window, TTE, TRE, global_counter, global_counter_container,executing_process,batches,batch_pendient_title,batches_counter,finished_process, finished_process_list)
     
     
-def counter(window, TTE, TRE, global_counter, global_counter_container,executing_process,batches,batch_pendient_title,batch_collection,batches_counter,finished_process,finished_process_list):
+def counter(window, TTE, TRE, global_counter, global_counter_container,executing_process,batches,batch_pendient_title,batches_counter,finished_process,finished_process_list):
     
     global batch_counter
     global is_paused
     global process_to_show
     global error
-    # is_paused = False
+    global batch_collection
+    global is_interrupted
     
-    executing_process.after(1000,lambda: counter(window, TTE, TRE, global_counter, global_counter_container,executing_process,batches,batch_pendient_title,batch_collection,batches_counter,finished_process,finished_process_list))
+    executing_process.after(1000,lambda: counter(window, TTE, TRE, global_counter, global_counter_container,executing_process,batches,batch_pendient_title,batches_counter,finished_process,finished_process_list))
     
     executing_process.delete('1.0',"end")
     
-    # if ms.kbhit():
-    #     ch = ms.getwch()
-    #     if ch == 'p' and not is_paused:
-    #         is_paused = True
-    #     elif ch == 'c':
-    #         is_paused = False 
     window.bind('<KeyRelease>',on_key_release)
         
     if not is_paused:
-        if process_to_show.TRE != 0:                                # Llega cuando se termina la cuenta
+        if is_interrupted:
+            batch_collection[0].insert(4,process_to_show)
+            process_to_show = batch_collection[0].pop(0)
+            is_interrupted = False
+            batches.delete('1.0',"end")
+            for process in batch_collection[0]:
+                batches.insert("end","ID: " + str(process.id) + "\nTiempo máximo estimado: " + str(process.estimated_time) + "\n")
+        elif process_to_show.TRE != 0 and not is_interrupted:                                # Llega cuando se termina la cuenta
             process_to_show.TRE -= 1
             process_to_show.TTE += 1
             global_counter += 1
@@ -262,7 +192,7 @@ def counter(window, TTE, TRE, global_counter, global_counter_container,executing
                 batch_pendient_title.config(text=f"Lotes pendientes: {batches_counter}")
                 finished_process.delete('1.0',"end")
                 for finished in finished_process_list:
-                    if not error: 
+                    if not finished.error: 
                         finished_process.insert("end", f"LOTE: {str(finished.belonging_batch)}\n" + "ID: " + str(finished.id) + "\nOperación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + "\nResultado: " + str(finished.operate(error=False)) + "\n\n")
                     else:
                         finished_process.insert("end", f"LOTE: {str(finished.belonging_batch)}\n" + "ID: " + str(finished.id) + "\nOperación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + "\nResultado: " + str(finished.operate(error=True)) + "\n\n")
@@ -280,7 +210,7 @@ def counter(window, TTE, TRE, global_counter, global_counter_container,executing
                 
                 finished_process.delete('1.0',"end")
                 for finished in finished_process_list:
-                    if not error: 
+                    if not finished.error: 
                         finished_process.insert("end", f"LOTE: {str(finished.belonging_batch)}\n" + "ID: " + str(finished.id) + "\nOperación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + "\nResultado: " + str(finished.operate(error=False)) + "\n\n")
                     else:
                         finished_process.insert("end", f"LOTE: {str(finished.belonging_batch)}\n" + "ID: " + str(finished.id) + "\nOperación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + "\nResultado: " + str(finished.operate(error=True)) + "\n\n")
@@ -289,11 +219,15 @@ def counter(window, TTE, TRE, global_counter, global_counter_container,executing
                 finished_process.configure(state="disabled")
                 executing_process.configure(state="disabled")
                 batches.configure(state="disabled")
+    else:
+        executing_process.insert("end",process_to_show)
 
 def on_key_release(event):
     global is_paused
     global process_to_show
     global error
+    global batch_collection
+    global is_interrupted
     
     if event.keysym == 'p' and not is_paused:
         is_paused = True
@@ -303,8 +237,11 @@ def on_key_release(event):
         print("unpaused")
     elif event.keysym == 'e' and not is_paused:
         process_to_show.TRE = 0
-        error = True
+        process_to_show.error = True
         print("error")
+    elif event.keysym == 'i' and not is_paused:
+        is_interrupted = True
+        print("interruption")
     
 
 assignation()
