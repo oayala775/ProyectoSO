@@ -148,6 +148,7 @@ def counter(window,global_counter, global_counter_container,executing_process,ba
     
     executing_process.delete('1.0',"end")
     
+    # Interrupción por medio de presión de tecla
     window.bind('<KeyRelease>',on_key_release)
         
     if not is_paused:
