@@ -1,5 +1,5 @@
 class Process:
-    def __init__(self, operation, first_data, second_data, estimated_time, id, belonging_batch):
+    def __init__(self, operation, first_data, second_data, estimated_time, id):
         self.operation = operation
         self.first_data = first_data
         self.second_data = second_data
@@ -7,9 +7,9 @@ class Process:
         self.id = id
         self.TRE = estimated_time
         self.TTE = 0
-        self.belonging_batch = belonging_batch
         self.result = 0
         self.error = False
+        self.blocked_time = 0
     
     # def __init__(self):
     #     print("Class created")

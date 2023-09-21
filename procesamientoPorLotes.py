@@ -5,10 +5,13 @@ from procesos import Process
 from ttkbootstrap.scrolled import ScrolledText
 import random as rd
 
-batch_collection = []
-global_counter = 0
-batch_counter = 0
+
+ready_list = []
+new_list = []
+blocked_list = []
 finished_process_list = []
+
+global_counter = 0
 is_paused = False
 process_to_show = 0
 is_interrupted = False
@@ -33,8 +36,8 @@ def assignation():
     window.mainloop()
 
 def verifications(window,amount_of_processes_text,amount_of_processes_label, amount_of_processes_send,title_label):
-    global batch_collection
-    global batch_counter
+    global process_collection
+    
     process_count = 0
     aux_collection = []
     
@@ -54,22 +57,15 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
         operation = rd.choices(operation_list)
         operation = operation[0]
         
-        process = Process(operation,first_data,second_data,estimated_time,ID,batch_counter)
-        aux_collection.append(process)
-        
-        process_count += 1
-        
-        if process_count%5 == 0:
-            batch_counter += 1
-            batch_collection.append(aux_collection.copy())
-            for j in range(5):
-                aux_collection.pop()
+        process = Process(operation,first_data,second_data,estimated_time,ID)
+        new_list.append(process)
         
         i += 1
-        
-    if process_count % 5 != 0:
-        batch_counter += 1
-        batch_collection.append(aux_collection.copy())
+    
+    i = 0
+    while i < 5:
+        ready_list.append(new_list.pop(0))
+        i += 1
             
     amount_of_processes_label.pack_forget()
     amount_of_processes_send.pack_forget()
@@ -78,34 +74,40 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
     
     secondScreen(window)
     
-        
 def secondScreen(window):
     # Window setup
-    global batch_collection
+    global new_list
     global global_counter
     global process_to_show
+    global ready_list
     
     # Window config
     window.title('Procesamiento por lotes')
     window.state('zoomed')
     window.columnconfigure((0,1,2,3,4,5), weight = 1)
-    window.rowconfigure((0,1,2,3,4,5,6), weight = 1)
+    window.rowconfigure((0,1,2,3,4,5,6,7), weight = 1)
 
     # Title
     title_label = ttk.Label(master=window, text="Procesamiento por lotes",font="Calibri 24 bold")
     title_label.grid(row = 0, column = 0, columnspan = 5, pady = 8, padx= 8)
     
-    batch_pendient_title = ttk.Label(master=window, text=f"Lotes pendientes: {len(batch_collection)-1}", font="Arial 13")
-    batch_pendient_title.grid(row = 1, column = 0, pady = 5, padx = 5)
+    new_process_title = ttk.Label(master=window, text=f"Nuevos: {len(new_list)}", font="Arial 13")
+    new_process_title.grid(row = 1, column = 0, pady = 5, padx = 5)
     
     global_counter_container = ttk.Label(master=window, text=f"Contador global: {global_counter}", font="Arial 13")
     global_counter_container.grid(row = 1, column = 2, pady = 5, padx = 5)
     
     # Recuadro de lote en ejecución
-    batches_label = ttk.Label(window, text = "Lote en ejecución.", font = "Arial 13")
-    batches_label.grid(row = 2, column = 0, sticky='s')
-    batches = tk.Text(master=window)
-    batches.grid(row = 3, column = 0, rowspan = 2, padx = 5)
+    ready_process_label = ttk.Label(window, text = "Procesos listos", font = "Arial 13")
+    ready_process_label.grid(row = 2, column = 0, sticky='s')
+    ready_process = tk.Text(master=window)
+    ready_process.grid(row = 3, column = 0, rowspan = 2, padx = 5)
+    
+    #Recuadro de procesos bloqueados
+    blocked_process_label = ttk.Label(window, text = "Procesos bloqueados", font = "Arial 13")
+    blocked_process_label.grid(row = 5, column = 1, sticky='s')
+    blocked_processes = tk.Text(master=window)
+    blocked_processes.grid(row = 6, column = 1, rowspan = 2, padx = 5)
     
     # Recuadro de proceso en ejecución
     executing_process_label = ttk.Label(window, text = "Proceso en ejecución.", font = "Arial 13")
@@ -122,89 +124,125 @@ def secondScreen(window):
     start_simulation = ttk.Button(master = window, text="Enviar proceso")
     
     # Obtiene el primer proceso y lo envía a proceso en ejecución
-    process_to_show = batch_collection[0].pop(0)
-    batches_counter = len(batch_collection)-1
+    process_to_show = ready_list.pop(0)
+    # batches_counter = len(batch_collection)-1
     
     # Muestra el lote en ejecución
-    if len(batch_collection[0]) != 0:
-        for process in batch_collection[0]:
-            batches.insert("end","ID: " + str(process.id) + "\nTiempo máximo estimado: " + str(process.estimated_time) + "\n")
+    if len(ready_list) != 0:
+        for process in ready_list:
+            ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
             
     executing_process.insert("end",process_to_show)
     
-    counter(window, global_counter, global_counter_container,executing_process,batches,batch_pendient_title,batches_counter,finished_process, finished_process_list)
+    counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes)
     
+def counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list, blocked_processes):
     
-def counter(window,global_counter, global_counter_container,executing_process,batches,batch_pendient_title,batches_counter,finished_process,finished_process_list):
-    
-    global batch_counter
     global is_paused
     global process_to_show
-    global batch_collection
     global is_interrupted
+    global ready_list
+    global new_list
+    global blocked_list
     
     # Llamada recursiva cada segundo
-    executing_process.after(1000,lambda: counter(window, global_counter, global_counter_container,executing_process,batches,batch_pendient_title,batches_counter,finished_process,finished_process_list))
+    executing_process.after(1000,lambda: counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes))
     
     executing_process.delete('1.0',"end")
     
     window.bind('<KeyRelease>',on_key_release)
         
     if not is_paused:
-        if is_interrupted:
-            batch_collection[0].insert(4,process_to_show)
-            process_to_show = batch_collection[0].pop(0)
+        if is_interrupted and len(ready_list) > 0:
+            blocked_list.append(process_to_show)
+            process_to_show = ready_list.pop(0)
             is_interrupted = False
-            batches.delete('1.0',"end")
-            for process in batch_collection[0]:
-                batches.insert("end","ID: " + str(process.id) + "\nTiempo máximo estimado: " + str(process.estimated_time) + "\n")
+            ready_process.delete('1.0',"end")
+            for process in ready_list:
+                ready_process.insert("end","ID: " + str(process.id) + "\nTiempo máximo estimado: " + str(process.estimated_time) + "\n")
+            
+            blocked_processes.delete('1.0',"end")
+            for process in blocked_list:
+                blocked_processes.insert("end","ID: " + str(process.id) + " Tiempo bloqueado: " + str(process.blocked_time) + "\n")
+        
+        elif is_interrupted and len(ready_list) == 0:
+            global_counter += 1
+            global_counter_container.config(text=f"Contador global: {global_counter}")
+            blocked_list.append(process_to_show)
+            #! TODO: Proceso nulo
+            # process_to_show = 0
+            # executing_process.insert("end",process_to_show)
+            if len(blocked_list) != 0:
+                blocked_processes.delete('1.0',"end")
+                for process in blocked_list:
+                    if process.blocked_time < 8:
+                        process.blocked_time += 1
+                        blocked_processes.insert("end","ID: " + str(process.id) + " Tiempo bloqueado: " + str(process.blocked_time) + "\n")
+                    else:
+                        process.blocked_time = 0
+                        ready_list.append(process)
+                        ready_process.insert("end","ID: " + str(process.id) + "\nTiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                        blocked_list.remove(process)
+            
+        
         elif process_to_show.TRE != 0 and not is_interrupted:                                # Actualiza el tiempo restante y el contador global
             process_to_show.TRE -= 1
             process_to_show.TTE += 1
             global_counter += 1
             global_counter_container.config(text=f"Contador global: {global_counter}")
             executing_process.insert("end",process_to_show)
+            if len(blocked_list) != 0:
+                blocked_processes.delete('1.0',"end")
+                for process in blocked_list:
+                    if process.blocked_time < 8:
+                        process.blocked_time += 1
+                        blocked_processes.insert("end","ID: " + str(process.id) + " Tiempo bloqueado: " + str(process.blocked_time) + "\n")
+                    else:
+                        process.blocked_time = 0
+                        ready_list.append(process)
+                        ready_process.insert("end","ID: " + str(process.id) + "\nTiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                        blocked_list.remove(process)
             
-        elif len(batch_collection[0]) != 0:         # Sucede cada vez que la longitud de la lista interna es mayor a cero, es decir la lista no está vacía
-            if process_to_show not in finished_process_list:    #Añade un proceso a la lista de finalizados
-                finished_process_list.append(process_to_show)
+                        
             
-            process_to_show = batch_collection[0].pop(0)    #Actualiza el proceso a ejecutarse
-            batches.delete('1.0',"end")
+        # Se termina un proceso porque su tiempo restante es 0
+        elif process_to_show.TRE == 0:
+            # Se actualiza la lista de procesos terminados
+            finished_process_list.append(process_to_show)
             
-            for process in batch_collection[0]:             # Muestra el lote en ejecución
-                batches.insert("end","ID: " + str(process.id) + "\nTiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                
+            # Si la cola de listos no está vacía, se saca el siguiente proceso
+            if len(ready_list) != 0:
+                process_to_show = ready_list.pop(0)
+            else: 
+                print("Finished")
+            
+            # Imprime el nuevo proceso a ejecutar
             executing_process.insert("end",process_to_show)
-            TTE = 0
-            TRE = process_to_show.estimated_time
             
-            if batches_counter >= 0:                        # Actualiza el contador de lotes pendientes
-                batch_pendient_title.config(text=f"Lotes pendientes: {batches_counter}")
-                
-                # Muestra los procesos finalizados
-                finished_process_show(finished_process_list,finished_process)
+            # Actualiza el contador de nuevos procesos
+            ready_list.append(new_list.pop(0))
+            new_process_title.config(text=f"Nuevos: {len(new_list)}")
+            
+            # Reimprime la lista de procesos nuevos
+            ready_process.delete('1.0', "end")
+            for process in ready_list:
+                ready_process.insert("end","ID: "+str(process.id)+" Tiempo máximo estimado: "+str(process.estimated_time)+"\n")
+            
+            # Actualiza la lista de procesos terminados
+            finished_process_show(finished_process_list,finished_process)
 
-        else:                                                       # Cambio de lote
-            if batches_counter >= 0:
-                if process_to_show not in finished_process_list:    #Añade un proceso a lista de finalizados
-                    finished_process_list.append(process_to_show)
-                
-                if(len(batch_collection) != 1):                     #Actualización del lote
-                    batch_collection[0] = batch_collection[1]
-                    batch_counter += 1
-                    batches_counter -= 1
-                    batch_collection.remove(batch_collection[1])   
+        # else:                                                       # Cambio de lote
+
                 
                 # Muestra los procesos finalizados
-                finished_process_show(finished_process_list,finished_process)
+                # finished_process_show(finished_process_list,finished_process)
             
             # Finalización del programa
-            else:   
-                window.after_cancel(executing_process)
-                finished_process.configure(state="disable")
-                executing_process.after_cancel()
-                batches.configure(state="disabled")
+            # else:   
+            #     window.after_cancel(executing_process)
+            #     finished_process.configure(state="disable")
+            #     executing_process.after_cancel()
+            #     ready_process.configure(state="disabled")
     else:
         executing_process.insert("end",process_to_show)
 
@@ -212,9 +250,9 @@ def finished_process_show(finished_process_list,finished_process):
     finished_process.delete('1.0',"end")
     for finished in finished_process_list:              #Imprime la lista de finalizados
         if not finished.error: 
-            finished_process.insert("end", f"LOTE: {str(finished.belonging_batch)}\n" + "ID: " + str(finished.id) + "\nOperación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + "\nResultado: " + str(finished.operate(error=False)) + "\n\n")
+            finished_process.insert("end", f"ID: " + str(finished.id) + " Operación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + " Resultado: " + str(finished.operate(error=False)) + "\n\n")
         else:
-            finished_process.insert("end", f"LOTE: {str(finished.belonging_batch)}\n" + "ID: " + str(finished.id) + "\nOperación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + "\nResultado: " + str(finished.operate(error=True)) + "\n\n")
+            finished_process.insert("end", f"ID: " + str(finished.id) + " Operación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + " Resultado: " + str(finished.operate(error=True)) + "\n\n")
     
 def on_key_release(event):
     global is_paused
