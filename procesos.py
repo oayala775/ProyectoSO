@@ -10,6 +10,7 @@ class Process:
         self.result = 0
         self.error = False
         self.blocked_time = 0
+        self.null_process = False
     
     # def __init__(self):
     #     print("Class created")

@@ -15,6 +15,7 @@ global_counter = 0
 is_paused = False
 process_to_show = 0
 is_interrupted = False
+is_executing_list_empty = False
 
 def assignation():
     # Window config
@@ -144,6 +145,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
     global ready_list
     global new_list
     global blocked_list
+    global is_executing_list_empty
     
     # Llamada recursiva cada segundo
     executing_process.after(1000,lambda: counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes))
@@ -153,25 +155,35 @@ def counter(window, global_counter, global_counter_container,executing_process,r
     window.bind('<KeyRelease>',on_key_release)
         
     if not is_paused:
+        # Menos de 5 procesos bloqueados al mismo tiempo
         if is_interrupted and len(ready_list) > 0:
-            blocked_list.append(process_to_show)
-            process_to_show = ready_list.pop(0)
-            is_interrupted = False
+            if is_executing_list_empty == True:
+                process_to_show = ready_list.pop(0)
+                is_executing_list_empty = False
+            else:
+                blocked_list.append(process_to_show)
+                process_to_show = ready_list.pop(0)
+            
+            is_interrupted = False    
+            
+            executing_process.insert('1.0',process_to_show)
+            
             ready_process.delete('1.0',"end")
             for process in ready_list:
-                ready_process.insert("end","ID: " + str(process.id) + "\nTiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
             
             blocked_processes.delete('1.0',"end")
             for process in blocked_list:
                 blocked_processes.insert("end","ID: " + str(process.id) + " Tiempo bloqueado: " + str(process.blocked_time) + "\n")
+                
         
+        # 5 procesos bloqueados al mismo tiempo
         elif is_interrupted and len(ready_list) == 0:
             global_counter += 1
             global_counter_container.config(text=f"Contador global: {global_counter}")
-            blocked_list.append(process_to_show)
-            #! TODO: Proceso nulo
-            # process_to_show = 0
-            # executing_process.insert("end",process_to_show)
+            if not is_executing_list_empty:
+                blocked_list.append(process_to_show)
+            is_executing_list_empty = True
             if len(blocked_list) != 0:
                 blocked_processes.delete('1.0',"end")
                 for process in blocked_list:
@@ -181,11 +193,13 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                     else:
                         process.blocked_time = 0
                         ready_list.append(process)
-                        ready_process.insert("end","ID: " + str(process.id) + "\nTiempo máximo estimado: " + str(process.estimated_time) + "\n")
                         blocked_list.remove(process)
+                        break
             
         
         elif process_to_show.TRE != 0 and not is_interrupted:                                # Actualiza el tiempo restante y el contador global
+            # if process_to_show.null_process == True:
+                # process_to_show = ready_list.pop(0)
             process_to_show.TRE -= 1
             process_to_show.TTE += 1
             global_counter += 1
@@ -193,15 +207,19 @@ def counter(window, global_counter, global_counter_container,executing_process,r
             executing_process.insert("end",process_to_show)
             if len(blocked_list) != 0:
                 blocked_processes.delete('1.0',"end")
-                for process in blocked_list:
-                    if process.blocked_time < 8:
-                        process.blocked_time += 1
-                        blocked_processes.insert("end","ID: " + str(process.id) + " Tiempo bloqueado: " + str(process.blocked_time) + "\n")
-                    else:
-                        process.blocked_time = 0
-                        ready_list.append(process)
-                        ready_process.insert("end","ID: " + str(process.id) + "\nTiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                        blocked_list.remove(process)
+                i = 0
+                while i < len(blocked_list): 
+                    if len(blocked_list) != 0:
+                        if blocked_list[i].blocked_time < 8:
+                            blocked_list[i].blocked_time += 1
+                            blocked_processes.insert("end","ID: " + str(blocked_list[i].id) + " Tiempo bloqueado: " + str(blocked_list[i].blocked_time) + "\n")
+                        else:
+                            blocked_list[i].blocked_time = 0
+                            ready_list.append(blocked_list[i])
+                            ready_process.insert("end","ID: " + str(blocked_list[i].id) + " Tiempo máximo estimado: " + str(blocked_list[i].estimated_time) + "\n")
+                            blocked_list.remove(blocked_list[i])
+                            i = -1
+                        i += 1
             
                         
             
@@ -220,7 +238,8 @@ def counter(window, global_counter, global_counter_container,executing_process,r
             executing_process.insert("end",process_to_show)
             
             # Actualiza el contador de nuevos procesos
-            ready_list.append(new_list.pop(0))
+            if len(new_list) > 0:
+                ready_list.append(new_list.pop(0))
             new_process_title.config(text=f"Nuevos: {len(new_list)}")
             
             # Reimprime la lista de procesos nuevos
