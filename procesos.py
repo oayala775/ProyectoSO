@@ -11,6 +11,14 @@ class Process:
         self.error = False
         self.blocked_time = 0
         self.null_process = False
+        self.start_time = 0
+        self.finishing_time = 0
+        self.return_time = 0
+        self.response_time = 0
+        self.response_flag = False
+        self.waiting_time = 0
+        self.service_time = estimated_time
+        
     
     # def __init__(self):
     #     print("Class created")
@@ -23,28 +31,35 @@ Tiempo transcurrido: {self.TTE}"""
     
     def operate(self,error):
         if self.operation == '+' and not error:
-            result = self.first_data + self.second_data
-            return result
+            self.result = self.first_data + self.second_data
+            return self.result
         elif self.operation == '-' and not error:
-            result = self.first_data - self.second_data
-            return result
+            self.result = self.first_data - self.second_data
+            return self.result
         elif self.operation == '*' and not error:
-            result = self.first_data * self.second_data
-            return result
+            self.result = self.first_data * self.second_data
+            return self.result
         elif self.operation == '/' and not error:
-            result = self.first_data/self.second_data
-            result = float(result)
-            return result
+            self.result = self.first_data/self.second_data
+            self.result = float(self.result)
+            return self.result
         elif self.operation == '%' and not error:
-            result = self.first_data%self.second_data
-            result = float(result)
-            return result
+            self.result = self.first_data%self.second_data
+            self.result = float(self.result)
+            return self.result
         elif error == True:
             self.error = error
-            result = "ERROR"
-            return result
+            self.result = "ERROR"
+            return self.result
         
     def __eq__(self,other):
         return self.id == other.id
+    
+    def calculate_times(self):
+        self.return_time = self.finishing_time - self.start_time
+        self.waiting_time = self.return_time - self.service_time
         
+    def serializeOperation(self):
+        string =  f"{self.first_data} {self.operation} {self.second_data}"
+        return string
     

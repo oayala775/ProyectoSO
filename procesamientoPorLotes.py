@@ -50,7 +50,7 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
         ID = i
         first_data = rd.randint(0,10000)
         second_data = rd.randint(0,10000)
-        estimated_time = rd.randint(6,18)
+        estimated_time = rd.randint(6,10)
         if second_data == 0:
             operation_list = ['+','-','*']
         else:
@@ -65,17 +65,21 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
     
     i = 0
     while i < 5:
-        ready_list.append(new_list.pop(0))
-        i += 1
+        if i < amount_of_processes:
+            ready_list.append(new_list.pop(0))
+            ready_list[i].start_time = global_counter
+            i += 1
+        else:
+            break
             
     amount_of_processes_label.pack_forget()
     amount_of_processes_send.pack_forget()
     amount_of_processes_text.pack_forget()
     title_label.pack_forget()
     
-    secondScreen(window)
+    secondScreen(window,amount_of_processes)
     
-def secondScreen(window):
+def secondScreen(window,amount_of_processes):
     # Window setup
     global new_list
     global global_counter
@@ -126,6 +130,8 @@ def secondScreen(window):
     
     # Obtiene el primer proceso y lo envía a proceso en ejecución
     process_to_show = ready_list.pop(0)
+    process_to_show.response_time = global_counter
+    process_to_show.response_flag = True
     # batches_counter = len(batch_collection)-1
     
     # Muestra el lote en ejecución
@@ -135,9 +141,9 @@ def secondScreen(window):
             
     executing_process.insert("end",process_to_show)
     
-    counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes)
+    counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes,amount_of_processes)
     
-def counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list, blocked_processes):
+def counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list, blocked_processes,amount_of_processes):
     
     global is_paused
     global process_to_show
@@ -148,7 +154,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
     global is_executing_list_empty
     
     # Llamada recursiva cada segundo
-    executing_process.after(1000,lambda: counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes))
+    executing_process.after(1000,lambda: counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes,amount_of_processes))
     
     executing_process.delete('1.0',"end")
     
@@ -159,10 +165,16 @@ def counter(window, global_counter, global_counter_container,executing_process,r
         if is_interrupted and len(ready_list) > 0:
             if is_executing_list_empty == True:
                 process_to_show = ready_list.pop(0)
+                if process_to_show.response_flag == False:
+                    process_to_show.response_time = global_counter
+                    process_to_show.response_flag = True
                 is_executing_list_empty = False
             else:
                 blocked_list.append(process_to_show)
                 process_to_show = ready_list.pop(0)
+                if process_to_show.response_flag == False:
+                    process_to_show.response_time = global_counter
+                    process_to_show.response_flag = True
             
             is_interrupted = False    
             
@@ -226,42 +238,47 @@ def counter(window, global_counter, global_counter_container,executing_process,r
         # Se termina un proceso porque su tiempo restante es 0
         elif process_to_show.TRE == 0:
             # Se actualiza la lista de procesos terminados
-            finished_process_list.append(process_to_show)
+            if not process_to_show in finished_process_list:
+                process_to_show.finishing_time = global_counter
+                finished_process_list.append(process_to_show)
             
             # Si la cola de listos no está vacía, se saca el siguiente proceso
             if len(ready_list) != 0:
                 process_to_show = ready_list.pop(0)
-            else: 
-                print("Finished")
-            
-            # Imprime el nuevo proceso a ejecutar
-            executing_process.insert("end",process_to_show)
-            
-            # Actualiza el contador de nuevos procesos
-            if len(new_list) > 0:
-                ready_list.append(new_list.pop(0))
-            new_process_title.config(text=f"Nuevos: {len(new_list)}")
-            
-            # Reimprime la lista de procesos nuevos
-            ready_process.delete('1.0', "end")
-            for process in ready_list:
-                ready_process.insert("end","ID: "+str(process.id)+" Tiempo máximo estimado: "+str(process.estimated_time)+"\n")
-            
-            # Actualiza la lista de procesos terminados
-            finished_process_show(finished_process_list,finished_process)
-
-        # else:                                                       # Cambio de lote
-
+                if process_to_show.response_flag == False:
+                    process_to_show.response_time = global_counter
+                    process_to_show.response_flag = True
                 
-                # Muestra los procesos finalizados
-                # finished_process_show(finished_process_list,finished_process)
-            
-            # Finalización del programa
-            # else:   
-            #     window.after_cancel(executing_process)
-            #     finished_process.configure(state="disable")
-            #     executing_process.after_cancel()
-            #     ready_process.configure(state="disabled")
+                 # Imprime el nuevo proceso a ejecutar
+                executing_process.insert("end",process_to_show)
+                
+                # Actualiza el contador de nuevos procesos
+                if len(new_list) > 0:
+                    new_list[0].start_time = global_counter
+                    ready_list.append(new_list.pop(0))
+                new_process_title.config(text=f"Nuevos: {len(new_list)}")
+                
+                # Reimprime la lista de procesos nuevos
+                ready_process.delete('1.0', "end")
+                for process in ready_list:
+                    ready_process.insert("end","ID: "+str(process.id)+" Tiempo máximo estimado: "+str(process.estimated_time)+"\n")
+                
+                # Actualiza la lista de procesos terminados
+                finished_process_show(finished_process_list,finished_process)
+            else: 
+                if(len(finished_process_list) == amount_of_processes):
+                    finished_process_show(finished_process_list,finished_process)
+                    bcp(window)
+                elif(len(blocked_list) != 0) and len(new_list) == 0:
+                    blocked_processes.after(1000,lambda:finishes_remaining_blocked_process(global_counter_container,blocked_processes,global_counter))
+                    
+                    if blocked_list[0].blocked_time == 8:
+                        blocked_processes.delete('1.0',"end")
+                        blocked_list[0].blocked_time = 0
+                        ready_list.append(blocked_list.pop())
+                        process_to_show = ready_list.pop()
+                        executing_process.insert("end",process_to_show) 
+                        blocked_processes.after_cancel(blocked_processes)                    
     else:
         executing_process.insert("end",process_to_show)
 
@@ -269,9 +286,14 @@ def finished_process_show(finished_process_list,finished_process):
     finished_process.delete('1.0',"end")
     for finished in finished_process_list:              #Imprime la lista de finalizados
         if not finished.error: 
+            finished.calculate_times()
             finished_process.insert("end", f"ID: " + str(finished.id) + " Operación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + " Resultado: " + str(finished.operate(error=False)) + "\n\n")
+            print(finished)
         else:
+            finished.service_time = finished.TTE
+            finished.calculate_times()
             finished_process.insert("end", f"ID: " + str(finished.id) + " Operación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + " Resultado: " + str(finished.operate(error=True)) + "\n\n")
+            print(finished)
     
 def on_key_release(event):
     global is_paused
@@ -287,5 +309,45 @@ def on_key_release(event):
         process_to_show.error = True
     elif event.keysym == 'i' and not is_paused:
         is_interrupted = True
+        
+def bcp(window):
+    for widget in window.winfo_children():
+        widget.destroy()
+        
+    table = ttk.Treeview(window, columns=('ID','Operación','Resultado','Tiempo Inicio','Tiempo Finalización','Tiempo Servicio','Tiempo Espera','Tiempo Retorno', 'Tiempo Respuesta'),show='headings')
+    table.column('ID',anchor=tk.CENTER)
+    table.column('Operación',anchor=tk.CENTER)
+    table.column('Resultado',anchor=tk.CENTER)
+    table.column('Tiempo Inicio',anchor=tk.CENTER)
+    table.column('Tiempo Finalización',anchor=tk.CENTER)
+    table.column('Tiempo Servicio',anchor=tk.CENTER)
+    table.column('Tiempo Espera',anchor=tk.CENTER)
+    table.column('Tiempo Retorno',anchor=tk.CENTER)
+    table.column('Tiempo Respuesta',anchor=tk.CENTER)
+    
+    table.heading('ID', text='ID')
+    table.heading('Operación', text='Operación')
+    table.heading('Resultado', text='Resultado')
+    table.heading('Tiempo Inicio', text='Tiempo Inicio')
+    table.heading('Tiempo Finalización', text='Tiempo Finalización')
+    table.heading('Tiempo Servicio', text='Tiempo Servicio')
+    table.heading('Tiempo Espera', text='Tiempo Espera')
+    table.heading('Tiempo Retorno', text='Tiempo Retorno')
+    table.heading('Tiempo Respuesta', text='Tiempo Respuesta')
+    table.pack(fill='both',expand=True)
+    
+    for process in finished_process_list:
+        values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
+        table.insert(parent='',index=tk.END,values=values)
+        print(values)
+
+def finishes_remaining_blocked_process(global_counter_container,blocked_processes,global_counter):
+    global blocked_list
+    if len(blocked_list) != 0:
+        blocked_processes.delete('1.0',"end")
+        global_counter += 1
+        global_counter_container.config(text=f"Contador global: {global_counter}")
+        blocked_list[0].blocked_time += 1
+        blocked_processes.insert("end","ID: " + str(blocked_list[0].id) + " Tiempo bloqueado: " + str(blocked_list[0].blocked_time) + "\n")
 
 assignation()
