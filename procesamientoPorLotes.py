@@ -71,11 +71,9 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
             i += 1
         else:
             break
-            
-    amount_of_processes_label.pack_forget()
-    amount_of_processes_send.pack_forget()
-    amount_of_processes_text.pack_forget()
-    title_label.pack_forget()
+          
+    for widget in window.winfo_children():
+        widget.destroy()  
     
     secondScreen(window,amount_of_processes)
     
@@ -123,7 +121,8 @@ def secondScreen(window,amount_of_processes):
     # Recuadro de procesos terminados
     finished_process_label = ttk.Label(window, text = "Procesos terminados", font = "Arial 13")
     finished_process_label.grid(row = 2, column = 2, sticky='s')
-    finished_process = ScrolledText(master = window,wrap=tk.WORD)
+    # finished_process = ScrolledText(master = window,wrap=tk.WORD)
+    finished_process = tk.Text(master = window)
     finished_process.grid(row = 3, column = 2, rowspan = 2, padx = 5)
     
     start_simulation = ttk.Button(master = window, text="Enviar proceso")
@@ -241,6 +240,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
             if not process_to_show in finished_process_list:
                 process_to_show.finishing_time = global_counter
                 finished_process_list.append(process_to_show)
+                finished_process_show(finished_process_list,finished_process)
             
             # Si la cola de listos no está vacía, se saca el siguiente proceso
             if len(ready_list) != 0:
@@ -270,8 +270,9 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                     finished_process_show(finished_process_list,finished_process)
                     bcp(window)
                 elif(len(blocked_list) != 0) and len(new_list) == 0:
-                    blocked_processes.after(1000,lambda:finishes_remaining_blocked_process(global_counter_container,blocked_processes,global_counter))
-                    
+                    blocked_processes.after(1000,lambda:finishes_remaining_blocked_process(global_counter_container,blocked_processes))
+                    global_counter += 1
+                    global_counter_container.config(text=f"Contador global: {global_counter}")
                     if blocked_list[0].blocked_time == 8:
                         blocked_processes.delete('1.0',"end")
                         blocked_list[0].blocked_time = 0
@@ -341,12 +342,10 @@ def bcp(window):
         table.insert(parent='',index=tk.END,values=values)
         print(values)
 
-def finishes_remaining_blocked_process(global_counter_container,blocked_processes,global_counter):
+def finishes_remaining_blocked_process(global_counter_container,blocked_processes):
     global blocked_list
     if len(blocked_list) != 0:
         blocked_processes.delete('1.0',"end")
-        global_counter += 1
-        global_counter_container.config(text=f"Contador global: {global_counter}")
         blocked_list[0].blocked_time += 1
         blocked_processes.insert("end","ID: " + str(blocked_list[0].id) + " Tiempo bloqueado: " + str(blocked_list[0].blocked_time) + "\n")
 
