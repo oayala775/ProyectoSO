@@ -5,7 +5,6 @@ from procesos import Process
 from ttkbootstrap.scrolled import ScrolledText
 import random as rd
 
-
 ready_list = []
 new_list = []
 blocked_list = []
@@ -50,7 +49,7 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
         ID = i
         first_data = rd.randint(0,10000)
         second_data = rd.randint(0,10000)
-        estimated_time = rd.randint(6,10)
+        estimated_time = rd.randint(6,18)
         if second_data == 0:
             operation_list = ['+','-','*']
         else:
@@ -129,7 +128,7 @@ def secondScreen(window,amount_of_processes):
     
     # Obtiene el primer proceso y lo envía a proceso en ejecución
     process_to_show = ready_list.pop(0)
-    process_to_show.response_time = global_counter
+    process_to_show.response_time = global_counter - process_to_show.start_time
     process_to_show.response_flag = True
     # batches_counter = len(batch_collection)-1
     
@@ -162,17 +161,19 @@ def counter(window, global_counter, global_counter_container,executing_process,r
     if not is_paused:
         # Menos de 5 procesos bloqueados al mismo tiempo
         if is_interrupted and len(ready_list) > 0:
+            # Si la lista de listos no está vacía
             if is_executing_list_empty == True:
                 process_to_show = ready_list.pop(0)
+                # Checa si ya se midió el tiempo de respuesta
                 if process_to_show.response_flag == False:
-                    process_to_show.response_time = global_counter
+                    process_to_show.response_time = global_counter - process_to_show.start_time
                     process_to_show.response_flag = True
                 is_executing_list_empty = False
             else:
                 blocked_list.append(process_to_show)
                 process_to_show = ready_list.pop(0)
                 if process_to_show.response_flag == False:
-                    process_to_show.response_time = global_counter
+                    process_to_show.response_time = global_counter - process_to_show.start_time
                     process_to_show.response_flag = True
             
             is_interrupted = False    
@@ -187,7 +188,6 @@ def counter(window, global_counter, global_counter_container,executing_process,r
             for process in blocked_list:
                 blocked_processes.insert("end","ID: " + str(process.id) + " Tiempo bloqueado: " + str(process.blocked_time) + "\n")
                 
-        
         # 5 procesos bloqueados al mismo tiempo
         elif is_interrupted and len(ready_list) == 0:
             global_counter += 1
@@ -207,10 +207,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         blocked_list.remove(process)
                         break
             
-        
         elif process_to_show.TRE != 0 and not is_interrupted:                                # Actualiza el tiempo restante y el contador global
-            # if process_to_show.null_process == True:
-                # process_to_show = ready_list.pop(0)
             process_to_show.TRE -= 1
             process_to_show.TTE += 1
             global_counter += 1
@@ -230,9 +227,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                             ready_process.insert("end","ID: " + str(blocked_list[i].id) + " Tiempo máximo estimado: " + str(blocked_list[i].estimated_time) + "\n")
                             blocked_list.remove(blocked_list[i])
                             i = -1
-                        i += 1
-            
-                        
+                        i += 1             
             
         # Se termina un proceso porque su tiempo restante es 0
         elif process_to_show.TRE == 0:
@@ -246,7 +241,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
             if len(ready_list) != 0:
                 process_to_show = ready_list.pop(0)
                 if process_to_show.response_flag == False:
-                    process_to_show.response_time = global_counter
+                    process_to_show.response_time = global_counter - process_to_show.start_time
                     process_to_show.response_flag = True
                 
                  # Imprime el nuevo proceso a ejecutar
@@ -270,7 +265,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                     finished_process_show(finished_process_list,finished_process)
                     bcp(window)
                 elif(len(blocked_list) != 0) and len(new_list) == 0:
-                    blocked_processes.after(1000,lambda:finishes_remaining_blocked_process(global_counter_container,blocked_processes))
+                    blocked_processes.after(1000,lambda:finishes_remaining_blocked_process(blocked_processes))
                     global_counter += 1
                     global_counter_container.config(text=f"Contador global: {global_counter}")
                     if blocked_list[0].blocked_time == 8:
@@ -279,7 +274,12 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         ready_list.append(blocked_list.pop())
                         process_to_show = ready_list.pop()
                         executing_process.insert("end",process_to_show) 
-                        blocked_processes.after_cancel(blocked_processes)                    
+                        blocked_processes.after_cancel(blocked_processes)  
+                elif len(blocked_list) != 0 and len(new_list) != 0 and len(ready_list) == 0:
+                    ready_list.append(new_list.pop(0))     
+                    process_to_show = ready_list.pop()
+                    process_to_show.start_time = global_counter
+                    process_to_show.response_time = global_counter - process_to_show.start_time            
     else:
         executing_process.insert("end",process_to_show)
 
@@ -316,6 +316,7 @@ def bcp(window):
         widget.destroy()
         
     table = ttk.Treeview(window, columns=('ID','Operación','Resultado','Tiempo Inicio','Tiempo Finalización','Tiempo Servicio','Tiempo Espera','Tiempo Retorno', 'Tiempo Respuesta'),show='headings')
+    
     table.column('ID',anchor=tk.CENTER)
     table.column('Operación',anchor=tk.CENTER)
     table.column('Resultado',anchor=tk.CENTER)
@@ -342,7 +343,7 @@ def bcp(window):
         table.insert(parent='',index=tk.END,values=values)
         print(values)
 
-def finishes_remaining_blocked_process(global_counter_container,blocked_processes):
+def finishes_remaining_blocked_process(blocked_processes):
     global blocked_list
     if len(blocked_list) != 0:
         blocked_processes.delete('1.0',"end")
