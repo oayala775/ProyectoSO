@@ -1,8 +1,6 @@
 import ttkbootstrap as ttk
 import tkinter as tk
-# from tkinter import ttk
 from procesos import Process
-from ttkbootstrap.scrolled import ScrolledText
 import random as rd
 
 ready_list = []
@@ -45,6 +43,7 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
     amount_of_processes = int(amount_of_processes)
     i = 0
     
+    # Genera los procesos de forma aleatoria
     while i < amount_of_processes:
         ID = i
         first_data = rd.randint(0,10000)
@@ -63,6 +62,7 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
         i += 1
     
     i = 0
+    # Mientras que los procesos sean menores a 5 o al total ingresado se añaden a la cola de listos
     while i < 5 and i < amount_of_processes:
         ready_list.append(new_list.pop(0))
         ready_list[i].start_time = global_counter
@@ -127,9 +127,8 @@ def secondScreen(window,amount_of_processes):
     process_to_show = ready_list.pop(0)
     process_to_show.response_time = global_counter - process_to_show.start_time
     process_to_show.response_flag = True
-    # batches_counter = len(batch_collection)-1
     
-    # Muestra el lote en ejecución
+    # Muestra la cola de listos
     if len(ready_list) != 0:
         for process in ready_list:
             ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
@@ -157,7 +156,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
         
     if not is_paused:
         # Menos de 5 procesos bloqueados al mismo tiempo
-        # Si la lista de listos no está vacía
+        # Si la cola de listos no está vacía
         if is_interrupted and len(ready_list) > 0:
             # Checa si no existe un proceso en ejecución
             if is_executing_list_empty == True:
@@ -307,7 +306,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         # Evita que se siga llamando recursivamente a la función finishes_remaining_blocked_process
                         blocked_processes.after_cancel(blocked_processes)  
                 # Si la cola de listos está vacía pero la cola de nuevos no está vacía se obtiene el primer dato de la cola de nuevos como proceso en ejecución
-                elif len(blocked_list) != 0 and len(new_list) != 0 and len(ready_list) == 0:
+                elif len(blocked_list) != 0 and len(new_list) != 0:
                     # Añade el proceso a cola de listos
                     ready_list.append(new_list.pop(0)) 
                     # Convierte el proceso en el proceso a ejecutar    
@@ -326,14 +325,12 @@ def finished_process_show(finished_process_list,finished_process):
             # Si no terminó por error se calculan los tiempos
             finished.calculate_times()
             finished_process.insert("end", f"ID: " + str(finished.id) + " Operación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + " Resultado: " + str(finished.operate(error=False)) + "\n\n")
-            print(finished)
         else:
             # Si terminó por error el tiempo de servicio será igual al tiempo que estuvo en ejecución
             finished.service_time = finished.TTE
             # Calcula los tiempos
             finished.calculate_times()
             finished_process.insert("end", f"ID: " + str(finished.id) + " Operación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + " Resultado: " + str(finished.operate(error=True)) + "\n\n")
-            print(finished)
     
 def on_key_release(event):
     global is_paused
@@ -384,7 +381,6 @@ def bcp(window):
         # Establece el formato de valores
         values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
         table.insert(parent='',index=tk.END,values=values)
-        print(values)
 
 def finishes_remaining_blocked_process(blocked_processes):
     global blocked_list
