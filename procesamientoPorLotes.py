@@ -298,13 +298,17 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         # Reestablece su valor de tiempo de bloqueado a 0 para que se pueda volver a bloquear
                         blocked_list[0].blocked_time = 0
                         # Agrega el proceso a la cola de listos
-                        ready_list.append(blocked_list.pop())
+                        ready_list.append(blocked_list.pop(0))
                         # Agrega el proceso a ejecución
                         process_to_show = ready_list.pop()
                         # Actualiza el recuadro de GUI
                         executing_process.insert("end",process_to_show)
                         # Evita que se siga llamando recursivamente a la función finishes_remaining_blocked_process
                         blocked_processes.after_cancel(blocked_processes)  
+                    else:
+                        blocked_processes.delete('1.0', "end")
+                        for process in blocked_list:
+                            blocked_processes.insert("end","ID: "+str(process.id)+" Tiempo bloqueado: "+str(process.blocked_time)+"\n")
                 # Si la cola de listos está vacía pero la cola de nuevos no está vacía se obtiene el primer dato de la cola de nuevos como proceso en ejecución
                 elif len(blocked_list) != 0 and len(new_list) != 0:
                     # Añade el proceso a cola de listos
@@ -387,7 +391,9 @@ def finishes_remaining_blocked_process(blocked_processes):
     # Si hay más de un proceso bloqueado actualiza su tiempo de bloqueo
     if len(blocked_list) != 0:
         blocked_processes.delete('1.0',"end")
-        blocked_list[0].blocked_time += 1
-        blocked_processes.insert("end","ID: " + str(blocked_list[0].id) + " Tiempo bloqueado: " + str(blocked_list[0].blocked_time) + "\n")
+        for process in blocked_list:
+            # Incrementa el tiempo de bloqueo
+            process.blocked_time += 1
+            blocked_processes.insert("end","ID: "+str(process.id)+" Tiempo bloqueado: "+str(process.blocked_time)+"\n")
 
 assignation()
