@@ -13,6 +13,10 @@ is_paused = False
 process_to_show = 0
 is_interrupted = False
 is_executing_list_empty = False
+is_generated_new_process = False
+is_bcp_called = False
+
+number_of_processes = 0
 
 def assignation():
     # Window config
@@ -35,6 +39,7 @@ def assignation():
 
 def verifications(window,amount_of_processes_text,amount_of_processes_label, amount_of_processes_send,title_label):
     global process_collection
+    global number_of_processes
     
     process_count = 0
     aux_collection = []
@@ -62,6 +67,7 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
         i += 1
     
     i = 0
+    number_of_processes = amount_of_processes
     # Mientras que los procesos sean menores a 5 o al total ingresado se añaden a la cola de listos
     while i < 5 and i < amount_of_processes:
         ready_list.append(new_list.pop(0))
@@ -146,6 +152,8 @@ def counter(window, global_counter, global_counter_container,executing_process,r
     global new_list
     global blocked_list
     global is_executing_list_empty
+    global is_generated_new_process
+    global is_bcp_called
     
     # Llamada recursiva cada segundo
     executing_process.after(1000,lambda: counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes,amount_of_processes))
@@ -153,12 +161,16 @@ def counter(window, global_counter, global_counter_container,executing_process,r
     executing_process.delete('1.0',"end")
     
     window.bind('<KeyRelease>',on_key_release)
-        
+         
     if not is_paused:
         # Menos de 5 procesos bloqueados al mismo tiempo
         # Si la cola de listos no está vacía
         if is_interrupted and len(ready_list) > 0:
             # Checa si no existe un proceso en ejecución
+            if is_generated_new_process:
+                new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                is_generated_new_process = False
+            
             if is_executing_list_empty == True:
                 # En caso de que sea cierto toma un proceso de la cola de listos para ejecutarse
                 process_to_show = ready_list.pop(0)
@@ -193,6 +205,9 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 
         # 5 procesos bloqueados al mismo tiempo, por tanto la cola de listos está vacía
         elif is_interrupted and len(ready_list) == 0:
+            if is_generated_new_process:
+                new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                is_generated_new_process = False
             # Aumenta el contador global
             global_counter += 1
             global_counter_container.config(text=f"Contador global: {global_counter}")
@@ -217,7 +232,10 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         blocked_list.remove(process)
                         break
         # Cuando el proceso está en ejecución y no se produce una interrupción
-        elif process_to_show.TRE != 0 and not is_interrupted:                 
+        elif process_to_show.TRE != 0 and not is_interrupted:  
+            if is_generated_new_process:
+                new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                is_generated_new_process = False               
             # Actualiza los contadores de tiempo restante y tiempo transcurrido del proceso               
             process_to_show.TRE -= 1
             process_to_show.TTE += 1
@@ -246,6 +264,9 @@ def counter(window, global_counter, global_counter_container,executing_process,r
             
         # Se termina un proceso porque su tiempo restante es 0
         elif process_to_show.TRE == 0:
+            if is_generated_new_process:
+                new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                is_generated_new_process = False
             # Se actualiza la lista de procesos terminados
             if not process_to_show in finished_process_list:
                 process_to_show.finishing_time = global_counter
@@ -283,9 +304,14 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                     # Actualiza la lista de procesos terminados, para añadir el último proceso a dicha lista
                     finished_process_show(finished_process_list,finished_process)
                     # Muestra el BCP
+                    for widget in window.winfo_children():
+                        widget.destroy()
                     bcp(window)
                 # Si la cola de listos no tiene procesos, y la cola de nuevos tampoco, todos los procesos se encuentran bloqueados
                 elif(len(blocked_list) != 0) and len(new_list) == 0:
+                    if is_generated_new_process:
+                        new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                        is_generated_new_process = False
                     # Llama recursivamente cada segundo a la funcion finishes_remaining_blocked_process que se encarga de terminar la ejecución de un proceso
                     # bloqueado para salir de este estado
                     blocked_processes.after(1000,lambda:finishes_remaining_blocked_process(blocked_processes))
@@ -311,6 +337,9 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                             blocked_processes.insert("end","ID: "+str(process.id)+" Tiempo bloqueado: "+str(process.blocked_time)+"\n")
                 # Si la cola de listos está vacía pero la cola de nuevos no está vacía se obtiene el primer dato de la cola de nuevos como proceso en ejecución
                 elif len(blocked_list) != 0 and len(new_list) != 0:
+                    if is_generated_new_process:
+                        new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                        is_generated_new_process = False
                     # Añade el proceso a cola de listos
                     ready_list.append(new_list.pop(0)) 
                     # Convierte el proceso en el proceso a ejecutar    
@@ -319,6 +348,11 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                     process_to_show.start_time = global_counter
                     process_to_show.response_time = global_counter - process_to_show.start_time            
     else:
+        if is_bcp_called:
+            window2 = ttk.Window(title='Bloque de control de procesos')
+            window2.state('zoomed')
+            bcp(window2)
+            is_bcp_called = False
         # Si está pausado entonces se mantiene el proceso en pantalla
         executing_process.insert("end",process_to_show)
 
@@ -340,6 +374,8 @@ def on_key_release(event):
     global is_paused
     global process_to_show
     global is_interrupted
+    global is_generated_new_process
+    global is_bcp_called
     
     if event.keysym == 'p' and not is_paused:
         is_paused = True
@@ -350,10 +386,43 @@ def on_key_release(event):
         process_to_show.error = True
     elif event.keysym == 'i' and not is_paused:
         is_interrupted = True
+    elif event.keysym == 'n' and not is_paused:
+        generate_new_process()
+        is_generated_new_process = True
+    elif event.keysym == 'b' and not is_paused:
+        is_paused = True
+        is_bcp_called = True
+
+def generate_new_process():
+    global new_list
+    # global ready_list
+    # global blocked_list
+    global number_of_processes
+             
+    ID = number_of_processes + 1
+    first_data = rd.randint(0,10000)
+    second_data = rd.randint(0,10000)
+    estimated_time = rd.randint(6,18)
+    if second_data == 0:
+        operation_list = ['+','-','*']
+    else:
+        operation_list = ['+','-','*','/','%']
+    operation = rd.choices(operation_list)
+    operation = operation[0]
+    
+    process = Process(operation,first_data,second_data,estimated_time,ID)
+    new_list.append(process)
+    
+    # new_process_title.config(text = f"{len(new_list)}")
+        
         
 def bcp(window):
-    for widget in window.winfo_children():
-        widget.destroy()
+    # for widget in window.winfo_children():
+    #     widget.destroy()
+    # window2 = ttk.Window(title='Bloque de control de procesos')
+    # window2.state('zoomed')
+    
+    window.bind("<KeyRelease>", second_key_release)
         
     table = ttk.Treeview(window, columns=('ID','Operación','Resultado','Tiempo Inicio','Tiempo Finalización','Tiempo Servicio','Tiempo Espera','Tiempo Retorno', 'Tiempo Respuesta'),show='headings')
     
@@ -386,6 +455,14 @@ def bcp(window):
         values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
         table.insert(parent='',index=tk.END,values=values)
 
+def second_key_release(event):
+    global is_paused
+    global is_bcp_called
+    if event.keysym == 'c':
+        event.widget.destroy()
+        is_paused = False
+        is_bcp_called = False
+    
 def finishes_remaining_blocked_process(blocked_processes):
     global blocked_list
     # Si hay más de un proceso bloqueado actualiza su tiempo de bloqueo
