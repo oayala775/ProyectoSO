@@ -172,7 +172,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                executing_process.insert("end",process_to_show)
+                # executing_process.insert("end",process_to_show)
                 is_generated_new_process = False
             
             if is_executing_list_empty == True:
@@ -214,7 +214,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                executing_process.insert("end",process_to_show)
+                # executing_process.insert("end",process_to_show)
                 is_generated_new_process = False
             # Aumenta el contador global
             global_counter += 1
@@ -246,7 +246,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                executing_process.insert("end",process_to_show)
+                # executing_process.insert("end",process_to_show)
                 is_generated_new_process = False               
             # Actualiza los contadores de tiempo restante y tiempo transcurrido del proceso               
             process_to_show.TRE -= 1
@@ -281,7 +281,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                executing_process.insert("end",process_to_show)
+                # executing_process.insert("end",process_to_show)
                 is_generated_new_process = False
             # Se actualiza la lista de procesos terminados
             if not process_to_show in finished_process_list:
@@ -330,7 +330,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         ready_process.delete('1.0',"end")
                         for process in ready_list:
                             ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                        executing_process.insert("end",process_to_show)
+                        # executing_process.insert("end",process_to_show)
                         is_generated_new_process = False
                     # Llama recursivamente cada segundo a la funcion finishes_remaining_blocked_process que se encarga de terminar la ejecución de un proceso
                     # bloqueado para salir de este estado
@@ -362,7 +362,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         ready_process.delete('1.0',"end")
                         for process in ready_list:
                             ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                        executing_process.insert("end",process_to_show)
+                        # executing_process.insert("end",process_to_show)
                         is_generated_new_process = False
                     # Añade el proceso a cola de listos
                     ready_list.append(new_list.pop(0)) 
@@ -439,7 +439,9 @@ def generate_new_process():
     len_ready_list = len(ready_list)
     len_blocked_list = len(blocked_list)
     
-    if len_ready_list + len_blocked_list == 4: 
+    if len_blocked_list == 5: 
+        new_list.append(process)
+    elif len_ready_list + len_blocked_list >= 4:
         new_list.append(process)
     else:
         ready_list.append(process)
