@@ -320,7 +320,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                     for widget in window.winfo_children():
                         widget.destroy()
                     process_to_show.null_process = True
-                    bcp(window)
+                    bcp(window,global_counter)
                 # Si la cola de listos no tiene procesos, y la cola de nuevos tampoco, todos los procesos se encuentran bloqueados
                 elif(len(blocked_list) != 0) and len(new_list) == 0:
                     if is_generated_new_process:
@@ -328,6 +328,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         ready_process.delete('1.0',"end")
                         for process in ready_list:
                             ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                        process_to_show.null_process = True
                         is_generated_new_process = False
                     # Llama recursivamente cada segundo a la funcion finishes_remaining_blocked_process que se encarga de terminar la ejecución de un proceso
                     # bloqueado para salir de este estado
@@ -342,6 +343,8 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         blocked_list[0].blocked_time = 0
                         # Agrega el proceso a la cola de listos
                         ready_list.append(blocked_list.pop(0))
+                        #Restaura el proceso a un proceso no nulo
+                        process_to_show.null_process = False
                         # Agrega el proceso a ejecución
                         process_to_show = ready_list.pop()
                         # Actualiza el recuadro de GUI
@@ -371,7 +374,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
         if is_bcp_called:
             window2 = ttk.Window(title='Bloque de control de procesos')
             window2.state('zoomed')
-            bcp(window2)
+            bcp(window2,global_counter)
             is_bcp_called = False
         # Si está pausado entonces se mantiene el proceso en pantalla
         executing_process.insert("end",process_to_show)
@@ -443,7 +446,7 @@ def generate_new_process():
         ready_list.append(process)
         
         
-def bcp(window):
+def bcp(window, global_counter):
     # for widget in window.winfo_children():
     #     widget.destroy()
     # window2 = ttk.Window(title='Bloque de control de procesos')
@@ -451,6 +454,7 @@ def bcp(window):
     global blocked_list
     global ready_list
     global process_to_show
+    global finished_process_list
     
     window.bind("<KeyRelease>", second_key_release)
         
@@ -480,7 +484,7 @@ def bcp(window):
     table.pack(fill='both',expand=True)
     
     # Itera sobre los procesos y los va insertando en el BCP
-    if not process_to_show.null_process:
+    if process_to_show not in blocked_list and process_to_show not in finished_process_list:
         table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESO EN EJECUCION','-','-','-','-'))
         # Establece el formato de valores
         process_to_show.service_time = process_to_show.TTE
@@ -499,6 +503,7 @@ def bcp(window):
         table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESOS LISTOS','-','-','-','-'))
         for process in ready_list:
             process.service_time = process.TTE
+            process.waiting_time = global_counter - process.start_time - process.TTE
             values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
             table.insert(parent='',index=tk.END,values=values)
     
@@ -506,6 +511,7 @@ def bcp(window):
         table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESOS BLOQUEADOS','-','-','-','-'))
         for process in blocked_list:
             process.service_time = process.TTE
+            process.waiting_time = global_counter - process.start_time - process.TTE
             values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
             table.insert(parent='',index=tk.END,values=values)
     
