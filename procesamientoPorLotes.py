@@ -154,6 +154,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
     global is_executing_list_empty
     global is_generated_new_process
     global is_bcp_called
+    global number_of_processes
     
     # Llamada recursiva cada segundo
     executing_process.after(1000,lambda: counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes,amount_of_processes))
@@ -172,7 +173,6 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                # executing_process.insert("end",process_to_show)
                 is_generated_new_process = False
             
             if is_executing_list_empty == True:
@@ -214,7 +214,6 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                # executing_process.insert("end",process_to_show)
                 is_generated_new_process = False
             # Aumenta el contador global
             global_counter += 1
@@ -246,7 +245,6 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                # executing_process.insert("end",process_to_show)
                 is_generated_new_process = False               
             # Actualiza los contadores de tiempo restante y tiempo transcurrido del proceso               
             process_to_show.TRE -= 1
@@ -281,7 +279,6 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                # executing_process.insert("end",process_to_show)
                 is_generated_new_process = False
             # Se actualiza la lista de procesos terminados
             if not process_to_show in finished_process_list:
@@ -316,12 +313,13 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 finished_process_show(finished_process_list,finished_process)
             else: 
                 # Si todos los procesos han terminado
-                if(len(finished_process_list) == amount_of_processes):
+                if(len(finished_process_list) == number_of_processes):
                     # Actualiza la lista de procesos terminados, para añadir el último proceso a dicha lista
                     finished_process_show(finished_process_list,finished_process)
                     # Muestra el BCP
                     for widget in window.winfo_children():
                         widget.destroy()
+                    process_to_show.null_process = True
                     bcp(window)
                 # Si la cola de listos no tiene procesos, y la cola de nuevos tampoco, todos los procesos se encuentran bloqueados
                 elif(len(blocked_list) != 0) and len(new_list) == 0:
@@ -330,7 +328,6 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         ready_process.delete('1.0',"end")
                         for process in ready_list:
                             ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                        # executing_process.insert("end",process_to_show)
                         is_generated_new_process = False
                     # Llama recursivamente cada segundo a la funcion finishes_remaining_blocked_process que se encarga de terminar la ejecución de un proceso
                     # bloqueado para salir de este estado
@@ -362,7 +359,6 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         ready_process.delete('1.0',"end")
                         for process in ready_list:
                             ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                        # executing_process.insert("end",process_to_show)
                         is_generated_new_process = False
                     # Añade el proceso a cola de listos
                     ready_list.append(new_list.pop(0)) 
@@ -445,8 +441,6 @@ def generate_new_process():
         new_list.append(process)
     else:
         ready_list.append(process)
-    
-    # new_process_title.config(text = f"{len(new_list)}")
         
         
 def bcp(window):
@@ -454,6 +448,9 @@ def bcp(window):
     #     widget.destroy()
     # window2 = ttk.Window(title='Bloque de control de procesos')
     # window2.state('zoomed')
+    global blocked_list
+    global ready_list
+    global process_to_show
     
     window.bind("<KeyRelease>", second_key_release)
         
@@ -483,10 +480,35 @@ def bcp(window):
     table.pack(fill='both',expand=True)
     
     # Itera sobre los procesos y los va insertando en el BCP
-    for process in finished_process_list:
+    if not process_to_show.null_process:
+        table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESO EN EJECUCION','-','-','-','-'))
         # Establece el formato de valores
-        values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
+        process_to_show.service_time = process_to_show.TTE
+        values = (process_to_show.id,process_to_show.serializeOperation(),process_to_show.result,process_to_show.start_time,process_to_show.finishing_time,process_to_show.service_time,process_to_show.waiting_time,process_to_show.return_time,process_to_show.response_time)
         table.insert(parent='',index=tk.END,values=values)
+    
+    if len(finished_process_list) != 0: 
+        table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESOS FINALIZADOS','-','-','-','-'))
+        for process in finished_process_list:
+            # Establece el formato de valores
+            process_to_show.service_time = process_to_show.TTE
+            values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
+            table.insert(parent='',index=tk.END,values=values)
+            
+    if len(ready_list) != 0:    
+        table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESOS LISTOS','-','-','-','-'))
+        for process in ready_list:
+            process.service_time = process.TTE
+            values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
+            table.insert(parent='',index=tk.END,values=values)
+    
+    if len(blocked_list) != 0:        
+        table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESOS BLOQUEADOS','-','-','-','-'))
+        for process in blocked_list:
+            process.service_time = process.TTE
+            values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
+            table.insert(parent='',index=tk.END,values=values)
+    
 
 def second_key_release(event):
     global is_paused

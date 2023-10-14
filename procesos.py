@@ -17,7 +17,7 @@ class Process:
         self.response_time = 0
         self.response_flag = False
         self.waiting_time = 0
-        self.service_time = estimated_time
+        self.service_time = self.TTE
         
     
     # def __init__(self):
@@ -56,6 +56,7 @@ Tiempo transcurrido: {self.TTE}"""
         return self.id == other.id
     
     def calculate_times(self):
+        self.service_time = self.TTE
         self.return_time = self.finishing_time - self.start_time
         self.waiting_time = self.return_time - self.service_time
         
