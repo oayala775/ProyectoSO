@@ -167,14 +167,16 @@ def counter(window, global_counter, global_counter_container,executing_process,r
         # Menos de 5 procesos bloqueados al mismo tiempo
         # Si la cola de listos no está vacía
         if is_interrupted and len(ready_list) > 0:
-            # Checa si no existe un proceso en ejecución
+            # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
             if is_generated_new_process:
                 new_process_title.config(text=f"Nuevos: {len(new_list)}")  
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                # Se regresa la bandera a falso
                 is_generated_new_process = False
             
+            # Checa si no existe un proceso en ejecución
             if is_executing_list_empty == True:
                 # En caso de que sea cierto toma un proceso de la cola de listos para ejecutarse
                 process_to_show = ready_list.pop(0)
@@ -209,11 +211,13 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 
         # 5 procesos bloqueados al mismo tiempo, por tanto la cola de listos está vacía
         elif is_interrupted and len(ready_list) == 0:
+            # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
             if is_generated_new_process:
                 new_process_title.config(text=f"Nuevos: {len(new_list)}")  
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                # Se regresa la bandera a falso
                 is_generated_new_process = False
             # Aumenta el contador global
             global_counter += 1
@@ -240,11 +244,13 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         break
         # Cuando el proceso está en ejecución y no se produce una interrupción
         elif process_to_show.TRE != 0 and not is_interrupted:  
+            # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
             if is_generated_new_process:
                 new_process_title.config(text=f"Nuevos: {len(new_list)}")  
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                # Se regresa la bandera a falso
                 is_generated_new_process = False               
             # Actualiza los contadores de tiempo restante y tiempo transcurrido del proceso               
             process_to_show.TRE -= 1
@@ -274,11 +280,13 @@ def counter(window, global_counter, global_counter_container,executing_process,r
             
         # Se termina un proceso porque su tiempo restante es 0
         elif process_to_show.TRE == 0:
+            # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
             if is_generated_new_process:
                 new_process_title.config(text=f"Nuevos: {len(new_list)}")  
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                # Se regresa la bandera a falso
                 is_generated_new_process = False
             # Se actualiza la lista de procesos terminados
             if not process_to_show in finished_process_list:
@@ -319,16 +327,16 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                     # Muestra el BCP
                     for widget in window.winfo_children():
                         widget.destroy()
-                    process_to_show.null_process = True
                     bcp(window,global_counter)
                 # Si la cola de listos no tiene procesos, y la cola de nuevos tampoco, todos los procesos se encuentran bloqueados
                 elif(len(blocked_list) != 0) and len(new_list) == 0:
+                    # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
                     if is_generated_new_process:
                         new_process_title.config(text=f"Nuevos: {len(new_list)}")  
                         ready_process.delete('1.0',"end")
                         for process in ready_list:
                             ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                        process_to_show.null_process = True
+                        # Se regresa la bandera a falso
                         is_generated_new_process = False
                     # Llama recursivamente cada segundo a la funcion finishes_remaining_blocked_process que se encarga de terminar la ejecución de un proceso
                     # bloqueado para salir de este estado
@@ -357,11 +365,13 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                             blocked_processes.insert("end","ID: "+str(process.id)+" Tiempo bloqueado: "+str(process.blocked_time)+"\n")
                 # Si la cola de listos está vacía pero la cola de nuevos no está vacía se obtiene el primer dato de la cola de nuevos como proceso en ejecución
                 elif len(blocked_list) != 0 and len(new_list) != 0:
+                    # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
                     if is_generated_new_process:
                         new_process_title.config(text=f"Nuevos: {len(new_list)}")  
                         ready_process.delete('1.0',"end")
                         for process in ready_list:
                             ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                        # Se regresa la bandera a falso
                         is_generated_new_process = False
                     # Añade el proceso a cola de listos
                     ready_list.append(new_list.pop(0)) 
@@ -438,8 +448,10 @@ def generate_new_process():
     len_ready_list = len(ready_list)
     len_blocked_list = len(blocked_list)
     
+    # Si la lista de bloqueados es igual a 5 entonces se agrega el proceso a la lista de nuevos
     if len_blocked_list == 5: 
         new_list.append(process)
+    # O en caso de que la suma de la lista de bloqueados y la lista de listos sea menor o igual a 4 se agrega el proceso a la lista de nuevos
     elif len_ready_list + len_blocked_list >= 4:
         new_list.append(process)
     else:
@@ -447,10 +459,6 @@ def generate_new_process():
         
         
 def bcp(window, global_counter):
-    # for widget in window.winfo_children():
-    #     widget.destroy()
-    # window2 = ttk.Window(title='Bloque de control de procesos')
-    # window2.state('zoomed')
     global blocked_list
     global ready_list
     global process_to_show
@@ -483,34 +491,43 @@ def bcp(window, global_counter):
     table.heading('Tiempo Respuesta', text='Tiempo Respuesta')
     table.pack(fill='both',expand=True)
     
-    # Itera sobre los procesos y los va insertando en el BCP
+    # Checa que el proceso en ejecución no esté en la lista de bloqueados ni en la lista de procesos finalizados
     if process_to_show not in blocked_list and process_to_show not in finished_process_list:
         table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESO EN EJECUCION','-','-','-','-'))
-        # Establece el formato de valores
+        # El tiempo en servicio se actualiza al valor actual del tiempo transcurrido
         process_to_show.service_time = process_to_show.TTE
+        # Establece el formato de valores
         values = (process_to_show.id,process_to_show.serializeOperation(),process_to_show.result,process_to_show.start_time,process_to_show.finishing_time,process_to_show.service_time,process_to_show.waiting_time,process_to_show.return_time,process_to_show.response_time)
         table.insert(parent='',index=tk.END,values=values)
     
+    # Si hay procesos finalizados los inserta en la tabla
     if len(finished_process_list) != 0: 
         table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESOS FINALIZADOS','-','-','-','-'))
         for process in finished_process_list:
-            # Establece el formato de valores
+            # El tiempo en servicio se actualiza al valor actual del tiempo transcurrido
             process_to_show.service_time = process_to_show.TTE
+            # Establece el formato de valores
             values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
             table.insert(parent='',index=tk.END,values=values)
-            
+    
+    # Si hay procesos listos los inserta en la tabla
     if len(ready_list) != 0:    
         table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESOS LISTOS','-','-','-','-'))
         for process in ready_list:
+            # El tiempo en servicio se actualiza al valor actual del tiempo transcurrido
             process.service_time = process.TTE
+            # El valor de tiempo de espera se actualiza al valor del contador global - tiempo de inicio - tiempo de servicio
             process.waiting_time = global_counter - process.start_time - process.TTE
             values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
             table.insert(parent='',index=tk.END,values=values)
     
+    # Si hay procesos bloqueados los inserta en la tabla
     if len(blocked_list) != 0:        
         table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESOS BLOQUEADOS','-','-','-','-'))
         for process in blocked_list:
+            # El tiempo en servicio se actualiza al valor actual del tiempo transcurrido
             process.service_time = process.TTE
+            # El valor de tiempo de espera se actualiza al valor del contador global - tiempo de inicio - tiempo de servicio
             process.waiting_time = global_counter - process.start_time - process.TTE
             values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
             table.insert(parent='',index=tk.END,values=values)
