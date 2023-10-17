@@ -456,17 +456,20 @@ def generate_new_process():
         new_list.append(process)
     else:
         ready_list.append(process)
-        
-        
+               
 def bcp(window, global_counter):
     global blocked_list
     global ready_list
     global process_to_show
     global finished_process_list
+    global new_list
     
     window.bind("<KeyRelease>", second_key_release)
         
-    table = ttk.Treeview(window, columns=('ID','Operación','Resultado','Tiempo Inicio','Tiempo Finalización','Tiempo Servicio','Tiempo Espera','Tiempo Retorno', 'Tiempo Respuesta'),show='headings')
+    if len(blocked_list) > 0:    
+        table = ttk.Treeview(window, columns=('ID','Operación','Resultado','Tiempo Inicio','Tiempo Finalización','Tiempo Servicio','Tiempo Espera','Tiempo Retorno', 'Tiempo Respuesta', 'Tiempo Restante CPU','Tiempo Restante'),show='headings')
+    else:
+        table = ttk.Treeview(window, columns=('ID','Operación','Resultado','Tiempo Inicio','Tiempo Finalización','Tiempo Servicio','Tiempo Espera','Tiempo Retorno', 'Tiempo Respuesta', 'Tiempo Restante CPU'),show='headings')
     
     # Formato de columnas
     table.column('ID',anchor=tk.CENTER)
@@ -478,6 +481,9 @@ def bcp(window, global_counter):
     table.column('Tiempo Espera',anchor=tk.CENTER)
     table.column('Tiempo Retorno',anchor=tk.CENTER)
     table.column('Tiempo Respuesta',anchor=tk.CENTER)
+    table.column('Tiempo Restante CPU',anchor=tk.CENTER)
+    if len(blocked_list) > 0:
+        table.column('Tiempo Restante',anchor=tk.CENTER)
     
     # Cabeceros de columnas
     table.heading('ID', text='ID')
@@ -489,50 +495,79 @@ def bcp(window, global_counter):
     table.heading('Tiempo Espera', text='Tiempo Espera')
     table.heading('Tiempo Retorno', text='Tiempo Retorno')
     table.heading('Tiempo Respuesta', text='Tiempo Respuesta')
+    table.heading('Tiempo Restante CPU', text='TR CPU')
+    if len(blocked_list) > 0:
+        table.heading('Tiempo Restante', text='TR Bloqueo')
     table.pack(fill='both',expand=True)
     
     # Checa que el proceso en ejecución no esté en la lista de bloqueados ni en la lista de procesos finalizados
     if process_to_show not in blocked_list and process_to_show not in finished_process_list:
-        table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESO EN EJECUCION','-','-','-','-'))
         # El tiempo en servicio se actualiza al valor actual del tiempo transcurrido
         process_to_show.service_time = process_to_show.TTE
+        # Se calcula el tiempo en espera
+        process_to_show.waiting_time = global_counter - process_to_show.start_time - process_to_show.TTE
         # Establece el formato de valores
-        values = (process_to_show.id,process_to_show.serializeOperation(),process_to_show.result,process_to_show.start_time,process_to_show.finishing_time,process_to_show.service_time,process_to_show.waiting_time,process_to_show.return_time,process_to_show.response_time)
+        if len(blocked_list) > 0:
+            table.insert(parent='',index=tk.END,values=('-','-','-','-','-','PROCESO EN EJECUCION','-','-','-','-','-'))
+            values = (process_to_show.id,process_to_show.serializeOperation(),' ',process_to_show.start_time,' ',process_to_show.service_time,process_to_show.waiting_time,process_to_show.return_time,process_to_show.response_time,process_to_show.TRE,' ')
+        else:
+            table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESO EN EJECUCION','-','-','-','-','-'))
+            values = (process_to_show.id,process_to_show.serializeOperation(),' ',process_to_show.start_time,' ',process_to_show.service_time,process_to_show.waiting_time,process_to_show.return_time,process_to_show.response_time,process_to_show.TRE)
         table.insert(parent='',index=tk.END,values=values)
     
     # Si hay procesos finalizados los inserta en la tabla
     if len(finished_process_list) != 0: 
-        table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESOS FINALIZADOS','-','-','-','-'))
+        if len(blocked_list) > 0:
+            table.insert(parent='',index=tk.END,values=('-','-','-','-','-','PROCESOS FINALIZADOS','-','-','-','-','-'))
+        else:
+            table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESOS FINALIZADOS','-','-','-','-','-'))
         for process in finished_process_list:
             # El tiempo en servicio se actualiza al valor actual del tiempo transcurrido
             process_to_show.service_time = process_to_show.TTE
             # Establece el formato de valores
-            values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
+            if len(blocked_list) > 0:
+                values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time,' ',' ')
+            else:
+             values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time,' ')
             table.insert(parent='',index=tk.END,values=values)
     
     # Si hay procesos listos los inserta en la tabla
     if len(ready_list) != 0:    
-        table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESOS LISTOS','-','-','-','-'))
+        if len(blocked_list) > 0:
+            table.insert(parent='',index=tk.END,values=('-','-','-','-','-','PROCESOS LISTOS','-','-','-','-','-'))
+        else:
+            table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESOS LISTOS','-','-','-','-'))
         for process in ready_list:
             # El tiempo en servicio se actualiza al valor actual del tiempo transcurrido
             process.service_time = process.TTE
             # El valor de tiempo de espera se actualiza al valor del contador global - tiempo de inicio - tiempo de servicio
             process.waiting_time = global_counter - process.start_time - process.TTE
-            values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
+            if len(blocked_list) > 0:
+                values = (process.id,process.serializeOperation(),' ',process.start_time,' ',process.service_time,process.waiting_time,process.return_time,process.response_time,process.TRE,0)
+            else: 
+                values = (process.id,process.serializeOperation(),' ',process.start_time,' ',process.service_time,process.waiting_time,process.return_time,process.response_time,process.TRE)
             table.insert(parent='',index=tk.END,values=values)
     
     # Si hay procesos bloqueados los inserta en la tabla
     if len(blocked_list) != 0:        
-        table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESOS BLOQUEADOS','-','-','-','-'))
+        table.insert(parent='',index=tk.END,values=('-','-','-','-','-','PROCESOS BLOQUEADOS','-','-','-','-','-'))
         for process in blocked_list:
             # El tiempo en servicio se actualiza al valor actual del tiempo transcurrido
             process.service_time = process.TTE
             # El valor de tiempo de espera se actualiza al valor del contador global - tiempo de inicio - tiempo de servicio
             process.waiting_time = global_counter - process.start_time - process.TTE
-            values = (process.id,process.serializeOperation(),process.result,process.start_time,process.finishing_time,process.service_time,process.waiting_time,process.return_time,process.response_time)
+            values = (process.id,process.serializeOperation(),' ',process.start_time,' ',process.service_time,process.waiting_time,process.return_time,process.response_time,process.TRE,8 - process.blocked_time)
             table.insert(parent='',index=tk.END,values=values)
     
-
+    if len(new_list) != 0:
+        if len(blocked_list) > 0:
+            table.insert(parent='',index=tk.END,values=('-','-','-','-','-','PROCESOS NUEVOS','-','-','-','-','-'))
+        else:
+            table.insert(parent='',index=tk.END,values=('-','-','-','-','PROCESOS NUEVOS','-','-','-','-'))
+        for process in new_list:
+            values = (process.id,process.serializeOperation(),' ',' ',' ',' ',' ',' ',' ',process.TRE,' ')
+            table.insert(parent='',index=tk.END,values=values)
+    
 def second_key_release(event):
     global is_paused
     global is_bcp_called
