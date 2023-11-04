@@ -30,20 +30,29 @@ def assignation():
     
     amount_of_processes_label = ttk.Label(master = window, text="Procesos a capturar", font='Arial 13')
     amount_of_processes_text = ttk.Entry(master = window)
-    amount_of_processes_send = ttk.Button(master = window, command = lambda: verifications(window, amount_of_processes_text,amount_of_processes_label, amount_of_processes_send,title_label), text="OK")
+    amount_of_processes_send = ttk.Button(master = window, command = lambda: verifications(window, amount_of_processes_text,amount_of_processes_label, amount_of_processes_send,title_label, quantum_label, quantum_text), text="OK")
+    
+    
+    quantum_label = ttk.Label(master = window, text="Tamaño del quantum", font='Arial 13')
+    quantum_text = ttk.Entry(master = window)
+    
     amount_of_processes_label.pack(pady=5)
     amount_of_processes_text.pack(pady=3)
+    quantum_label.pack(pady=5)
+    quantum_text.pack(pady=3)
     amount_of_processes_send.pack(pady=10)
     
     window.mainloop()
 
-def verifications(window,amount_of_processes_text,amount_of_processes_label, amount_of_processes_send,title_label):
+def verifications(window,amount_of_processes_text,amount_of_processes_label, amount_of_processes_send,title_label, quantum_label, quantum_text):
     global process_collection
     global number_of_processes
     
     process_count = 0
     aux_collection = []
     
+    quantum_size = quantum_text.get()
+    quantum_size = int(quantum_size)
     amount_of_processes = amount_of_processes_text.get()
     amount_of_processes = int(amount_of_processes)
     i = 0
@@ -77,9 +86,9 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
     for widget in window.winfo_children():
         widget.destroy()  
     
-    secondScreen(window,amount_of_processes)
+    secondScreen(window,amount_of_processes, quantum_size)
     
-def secondScreen(window,amount_of_processes):
+def secondScreen(window,amount_of_processes, quantum_size):
     # Window setup
     global new_list
     global global_counter
