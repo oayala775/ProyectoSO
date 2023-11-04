@@ -15,6 +15,7 @@ is_interrupted = False
 is_executing_list_empty = False
 is_generated_new_process = False
 is_bcp_called = False
+quantum_size = 0
 
 number_of_processes = 0
 
@@ -31,8 +32,7 @@ def assignation():
     amount_of_processes_label = ttk.Label(master = window, text="Procesos a capturar", font='Arial 13')
     amount_of_processes_text = ttk.Entry(master = window)
     amount_of_processes_send = ttk.Button(master = window, command = lambda: verifications(window, amount_of_processes_text,amount_of_processes_label, amount_of_processes_send,title_label, quantum_label, quantum_text), text="OK")
-    
-    
+
     quantum_label = ttk.Label(master = window, text="Tamaño del quantum", font='Arial 13')
     quantum_text = ttk.Entry(master = window)
     
@@ -47,6 +47,7 @@ def assignation():
 def verifications(window,amount_of_processes_text,amount_of_processes_label, amount_of_processes_send,title_label, quantum_label, quantum_text):
     global process_collection
     global number_of_processes
+    global quantum_size
     
     process_count = 0
     aux_collection = []
@@ -70,7 +71,7 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
         operation = rd.choices(operation_list)
         operation = operation[0]
         
-        process = Process(operation,first_data,second_data,estimated_time,ID)
+        process = Process(operation,first_data,second_data,estimated_time,ID,quantum_size)
         new_list.append(process)
         
         i += 1
@@ -264,6 +265,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
             # Actualiza los contadores de tiempo restante y tiempo transcurrido del proceso               
             process_to_show.TRE -= 1
             process_to_show.TTE += 1
+            process_to_show.transcurred_quantum += 1
             # Actualiza el contador global
             global_counter += 1
             global_counter_container.config(text=f"Contador global: {global_counter}")
@@ -285,7 +287,20 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                             blocked_list.remove(blocked_list[i])
                             # Actualiza el contador, de forma que nunca se pase del tamaño del arreglo
                             i = -1
-                        i += 1             
+                        i += 1   
+            
+            if process_to_show.transcurred_quantum == process_to_show.quantum:
+                ready_list.append(process_to_show)
+
+                process_to_show.transcurred_quantum = 0
+                process_to_show = ready_list.pop(0)   
+                
+                ready_process.delete('1.0',"end")
+                for process in ready_list:
+                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                
+                executing_process.delete('1.0',"end")
+                executing_process.insert("end",process_to_show)
             
         # Se termina un proceso porque su tiempo restante es 0
         elif process_to_show.TRE == 0:
@@ -388,7 +403,12 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                     process_to_show = ready_list.pop()
                     # Establece el tiempo de incio y el tiempo de respuesta
                     process_to_show.start_time = global_counter
-                    process_to_show.response_time = global_counter - process_to_show.start_time            
+                    process_to_show.response_time = global_counter - process_to_show.start_time   
+                     
+        elif process_to_show.transcurred_quantum == process_to_show.quantum:
+            process_to_show.transcurred_quantum = 0
+            ready_list.append(process_to_show)
+            process_to_show = ready_list.pop(0)        
     else:
         if is_bcp_called:
             window2 = ttk.Window(title='Bloque de control de procesos')
@@ -428,6 +448,7 @@ def on_key_release(event):
         process_to_show.error = True
     elif event.keysym == 'i' and not is_paused:
         is_interrupted = True
+        process_to_show.transcurred_quantum = 0
     elif event.keysym == 'n' and not is_paused:
         generate_new_process()
         is_generated_new_process = True
@@ -440,6 +461,7 @@ def generate_new_process():
     global ready_list
     global blocked_list
     global number_of_processes
+    global qunatum_size
              
     ID = number_of_processes
     number_of_processes += 1
@@ -453,7 +475,7 @@ def generate_new_process():
     operation = rd.choices(operation_list)
     operation = operation[0]
     
-    process = Process(operation,first_data,second_data,estimated_time,ID)
+    process = Process(operation,first_data,second_data,estimated_time,ID, quantum_size)
     len_ready_list = len(ready_list)
     len_blocked_list = len(blocked_list)
     

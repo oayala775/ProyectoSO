@@ -1,5 +1,5 @@
 class Process:
-    def __init__(self, operation, first_data, second_data, estimated_time, id):
+    def __init__(self, operation, first_data, second_data, estimated_time, id, quantum):
         self.operation = operation
         self.first_data = first_data
         self.second_data = second_data
@@ -18,6 +18,8 @@ class Process:
         self.response_flag = False
         self.waiting_time = 0
         self.service_time = self.TTE
+        self.quantum = quantum
+        self.transcurred_quantum = 0
         
     
     # def __init__(self):
@@ -27,7 +29,8 @@ class Process:
 Operación: {self.first_data}{self.operation}{self.second_data}
 Tiempo estimado: {self.estimated_time}s 
 Tiempo restante por ejecutar: {self.TRE}
-Tiempo transcurrido: {self.TTE}"""
+Tiempo transcurrido: {self.TTE}
+Quantum ejecutado: {self.transcurred_quantum}"""
     
     def operate(self,error):
         if self.operation == '+' and not error:
