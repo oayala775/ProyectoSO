@@ -147,7 +147,7 @@ def secondScreen(window,amount_of_processes, quantum_size):
     # Muestra la cola de listos
     if len(ready_list) != 0:
         for process in ready_list:
-            ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+            ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
             
     executing_process.insert("end",process_to_show)
     
@@ -182,7 +182,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 new_process_title.config(text=f"Nuevos: {len(new_list)}")  
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
-                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
                 # Se regresa la bandera a falso
                 is_generated_new_process = False
             
@@ -213,7 +213,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
             
             ready_process.delete('1.0',"end")
             for process in ready_list:
-                ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
             
             blocked_processes.delete('1.0',"end")
             for process in blocked_list:
@@ -226,7 +226,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 new_process_title.config(text=f"Nuevos: {len(new_list)}")  
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
-                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
                 # Se regresa la bandera a falso
                 is_generated_new_process = False
             # Aumenta el contador global
@@ -259,12 +259,13 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 new_process_title.config(text=f"Nuevos: {len(new_list)}")  
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
-                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
                 # Se regresa la bandera a falso
                 is_generated_new_process = False               
             # Actualiza los contadores de tiempo restante y tiempo transcurrido del proceso               
             process_to_show.TRE -= 1
             process_to_show.TTE += 1
+            # Incrementa la cantidad de tiempo transcurrido hasta el valor máximo del quantum
             process_to_show.transcurred_quantum += 1
             # Actualiza el contador global
             global_counter += 1
@@ -283,22 +284,24 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         else:
                             blocked_list[i].blocked_time = 0
                             ready_list.append(blocked_list[i])
-                            ready_process.insert("end","ID: " + str(blocked_list[i].id) + " Tiempo máximo estimado: " + str(blocked_list[i].estimated_time) + "\n")
+                            ready_process.insert("end","ID: " + str(blocked_list[i].id) + " Tiempo máximo estimado: " + str(blocked_list[i].estimated_time) + "Tiempo Transcurrido: " + str(blocked_list[i].TTE) + "\n")
                             blocked_list.remove(blocked_list[i])
                             # Actualiza el contador, de forma que nunca se pase del tamaño del arreglo
                             i = -1
                         i += 1   
-            
+            # Si el valor del quantum transcurrido es igual al valor ingresado del quantum
             if process_to_show.transcurred_quantum == process_to_show.quantum:
+                # Agrega el proceso a la cola de listos
                 ready_list.append(process_to_show)
-
+                # Regresa el valor del quantum transcurrido a 0
                 process_to_show.transcurred_quantum = 0
+                # Obtiene un nuevo proceso a ejecutar
                 process_to_show = ready_list.pop(0)   
-                
+                # Actualiza la cola de listos
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
-                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
-                
+                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
+                # Actualiza el cuadro de proceso en ejecución
                 executing_process.delete('1.0',"end")
                 executing_process.insert("end",process_to_show)
             
@@ -309,7 +312,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 new_process_title.config(text=f"Nuevos: {len(new_list)}")  
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
-                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
                 # Se regresa la bandera a falso
                 is_generated_new_process = False
             # Se actualiza la lista de procesos terminados
@@ -339,7 +342,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 # Reimprime la lista de procesos nuevos
                 ready_process.delete('1.0', "end")
                 for process in ready_list:
-                    ready_process.insert("end","ID: "+str(process.id)+" Tiempo máximo estimado: "+str(process.estimated_time)+"\n")
+                    ready_process.insert("end","ID: "+str(process.id)+" Tiempo máximo estimado: "+str(process.estimated_time)+"Tiempo Transcurrido: " + str(process.TTE) + "\n")
                 
                 # Actualiza la lista de procesos terminados
                 finished_process_show(finished_process_list,finished_process)
@@ -359,7 +362,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         new_process_title.config(text=f"Nuevos: {len(new_list)}")  
                         ready_process.delete('1.0',"end")
                         for process in ready_list:
-                            ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                            ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
                         # Se regresa la bandera a falso
                         is_generated_new_process = False
                     # Llama recursivamente cada segundo a la funcion finishes_remaining_blocked_process que se encarga de terminar la ejecución de un proceso
@@ -394,7 +397,7 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                         new_process_title.config(text=f"Nuevos: {len(new_list)}")  
                         ready_process.delete('1.0',"end")
                         for process in ready_list:
-                            ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + "\n")
+                            ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
                         # Se regresa la bandera a falso
                         is_generated_new_process = False
                     # Añade el proceso a cola de listos
