@@ -52,8 +52,11 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
     process_count = 0
     aux_collection = []
     
+    # Conversión del valor del quantum
     quantum_size = quantum_text.get()
     quantum_size = int(quantum_size)
+    
+    # Conversión de la cantidad de procesos
     amount_of_processes = amount_of_processes_text.get()
     amount_of_processes = int(amount_of_processes)
     i = 0
@@ -151,9 +154,9 @@ def secondScreen(window,amount_of_processes, quantum_size):
             
     executing_process.insert("end",process_to_show)
     
-    counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes,amount_of_processes)
+    counter(window, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes,amount_of_processes)
     
-def counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list, blocked_processes,amount_of_processes):
+def counter(window, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list, blocked_processes,amount_of_processes):
     
     global is_paused
     global process_to_show
@@ -165,9 +168,10 @@ def counter(window, global_counter, global_counter_container,executing_process,r
     global is_generated_new_process
     global is_bcp_called
     global number_of_processes
+    global global_counter
     
     # Llamada recursiva cada segundo
-    executing_process.after(1000,lambda: counter(window, global_counter, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes,amount_of_processes))
+    executing_process.after(1000,lambda: counter(window, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes,amount_of_processes))
     
     executing_process.delete('1.0',"end")
     
@@ -297,6 +301,9 @@ def counter(window, global_counter, global_counter_container,executing_process,r
                 process_to_show.transcurred_quantum = 0
                 # Obtiene un nuevo proceso a ejecutar
                 process_to_show = ready_list.pop(0)   
+                if not process_to_show.response_flag:
+                    process_to_show.response_flag = True
+                    process_to_show.response_time = global_counter - process_to_show.start_time
                 # Actualiza la cola de listos
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
@@ -411,7 +418,10 @@ def counter(window, global_counter, global_counter_container,executing_process,r
         elif process_to_show.transcurred_quantum == process_to_show.quantum:
             process_to_show.transcurred_quantum = 0
             ready_list.append(process_to_show)
-            process_to_show = ready_list.pop(0)        
+            process_to_show = ready_list.pop(0)   
+            if not process_to_show.response_flag:
+                process_to_show.response_flag = True
+                process_to_show.response_time = global_counter - process_to_show.start_time     
     else:
         if is_bcp_called:
             window2 = ttk.Window(title='Bloque de control de procesos')
@@ -441,6 +451,7 @@ def on_key_release(event):
     global is_interrupted
     global is_generated_new_process
     global is_bcp_called
+    global global_counter
     
     if event.keysym == 'p' and not is_paused:
         is_paused = True
@@ -453,18 +464,18 @@ def on_key_release(event):
         is_interrupted = True
         process_to_show.transcurred_quantum = 0
     elif event.keysym == 'n' and not is_paused:
-        generate_new_process()
+        generate_new_process(global_counter)
         is_generated_new_process = True
     elif event.keysym == 'b' and not is_paused:
         is_paused = True
         is_bcp_called = True
 
-def generate_new_process():
+def generate_new_process(global_counter):
     global new_list
     global ready_list
     global blocked_list
     global number_of_processes
-    global qunatum_size
+    global quantum_size
              
     ID = number_of_processes
     number_of_processes += 1
@@ -479,6 +490,7 @@ def generate_new_process():
     operation = operation[0]
     
     process = Process(operation,first_data,second_data,estimated_time,ID, quantum_size)
+    process.response_flag = False
     len_ready_list = len(ready_list)
     len_blocked_list = len(blocked_list)
     
@@ -489,6 +501,7 @@ def generate_new_process():
     elif len_ready_list + len_blocked_list >= 4:
         new_list.append(process)
     else:
+        process.start_time = global_counter
         ready_list.append(process)
                
 def bcp(window, global_counter):
