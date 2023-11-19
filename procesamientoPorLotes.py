@@ -2,6 +2,7 @@ import ttkbootstrap as ttk
 import tkinter as tk
 from procesos import Process
 import random as rd
+from tabla_paginacion import PageTable
 
 ready_list = []
 new_list = []
@@ -16,8 +17,30 @@ is_executing_list_empty = False
 is_generated_new_process = False
 is_bcp_called = False
 quantum_size = 0
+page_table = PageTable()
+page_table_object = 0
 
 number_of_processes = 0
+
+def insert_process_in_table(process):
+    global new_list
+    global ready_list
+    
+    size = process.size
+    if page_table.count_free_pages() >= process.page_number:
+        ready_list.append(new_list.pop(0))
+        for i in range(0,41):
+                if size > 0:
+                    if page_table.page_array[i][3] == 'Libre':
+                        if size >= 5:
+                            page_table.page_array.pop(i)
+                            page_table.page_array.insert(i, [i,'5/5',process.id,'Listo'])
+                        else:
+                            page_table.page_array.pop(i)
+                            page_table.page_array.insert(i, [i,f'{size}/5',process.id,'Listo'])
+                        size -= 5
+                else: 
+                    break
 
 def assignation():
     # Window config
@@ -48,6 +71,10 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
     global process_collection
     global number_of_processes
     global quantum_size
+    global page_table
+    global process_to_show
+    global new_list
+    global ready_list
     
     process_count = 0
     aux_collection = []
@@ -67,6 +94,7 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
         first_data = rd.randint(0,10000)
         second_data = rd.randint(0,10000)
         estimated_time = rd.randint(6,18)
+        size = rd.randint(6,26)
         if second_data == 0:
             operation_list = ['+','-','*']
         else:
@@ -74,7 +102,7 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
         operation = rd.choices(operation_list)
         operation = operation[0]
         
-        process = Process(operation,first_data,second_data,estimated_time,ID,quantum_size)
+        process = Process(operation,first_data,second_data,estimated_time,ID,quantum_size,size)
         new_list.append(process)
         
         i += 1
@@ -82,10 +110,54 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
     i = 0
     number_of_processes = amount_of_processes
     # Mientras que los procesos sean menores a 5 o al total ingresado se añaden a la cola de listos
-    while i < 5 and i < amount_of_processes:
+    process_to_show = new_list.pop(0)
+    process_to_show.start_time = global_counter
+    process_to_show.response_time = global_counter - process_to_show.start_time
+    process_to_show.response_flag = True
+    for i in range(0,41):
+        if size > 0:
+            if page_table.page_array[i][3] == 'Libre':
+                if size >= 5:
+                    page_table.page_array.pop(i)
+                    page_table.page_array.insert(i, [i,'5/5',process_to_show.id,'Ejecución'])
+                else:
+                    page_table.page_array.pop(i)
+                    page_table.page_array.insert(i, [i,f'{size}/5',process_to_show.id,'Ejecución'])
+                size -= 5
+        else:
+            break
+    
+    last_id = 0
+    for process in new_list:
+        size = process.size
+        if page_table.count_free_pages() >= process.page_number:
+            last_id = process.id
+            for i in range(0,41):
+                    if size > 0:
+                        if page_table.page_array[i][3] == 'Libre':
+                            if size >= 5:
+                                page_table.page_array.pop(i)
+                                page_table.page_array.insert(i, [i,'5/5',process.id,'Listo'])
+                            else:
+                                page_table.page_array.pop(i)
+                                page_table.page_array.insert(i, [i,f'{size}/5',process.id,'Listo'])
+                            size -= 5
+                    else: 
+                        break
+        else:
+            break
+    
+    i = 0
+    while new_list[0].id <= last_id:
         ready_list.append(new_list.pop(0))
-        ready_list[i].start_time = global_counter
-        i += 1
+        ready_list[0].start_time = global_counter
+        if len(new_list) == 0:
+            break
+                
+    # while i < 5 and i < amount_of_processes:
+    #     ready_list.append(new_list.pop(0))
+    #     ready_list[i].start_time = global_counter
+    #     i += 1
           
     for widget in window.winfo_children():
         widget.destroy()  
@@ -98,6 +170,8 @@ def secondScreen(window,amount_of_processes, quantum_size):
     global global_counter
     global process_to_show
     global ready_list
+    global page_table
+    global page_table_object
     
     # Window config
     window.title('Procesamiento por lotes')
@@ -111,8 +185,10 @@ def secondScreen(window,amount_of_processes, quantum_size):
     
     new_process_title = ttk.Label(master=window, text=f"Nuevos: {len(new_list)}", font="Arial 13")
     new_process_title.grid(row = 1, column = 0, padx = 5)
-    
-    next_process = ttk.Label(window, text=f"Siguiente proceso: ID Tamaño", font="Arial 13")
+    if len(new_list) > 0:
+        next_process = ttk.Label(window, text=f"Siguiente proceso: ID({new_list[0].id}) Tamaño({new_list[0].size})", font="Arial 13")
+    else:
+        next_process = ttk.Label(window, text=f"Siguiente proceso: ID() Tamaño()", font="Arial 13")
     next_process.grid(row=1, column=1, columnspan=2 , padx = 5)
     
     global_counter_container = ttk.Label(master=window, text=f"Contador global: {global_counter}", font="Arial 13")
@@ -159,387 +235,454 @@ def secondScreen(window,amount_of_processes, quantum_size):
     page_label = ttk.Label(master=page_frame, text="Páginas", font="Arial 13")
     page_label.grid(row=0, pady=5, padx=5,sticky='s')
     # Creación de la tabla de paginación
-    page_table = ttk.Treeview(page_frame, columns=("Marco","Espacio","ID","Estado"), show="headings")
-    page_table.grid(row=1, sticky='nsew')
+    page_table_object = ttk.Treeview(page_frame, columns=("Marco","Espacio","ID","Estado"), show="headings")
+    page_table_object.grid(row=1, sticky='nsew')
     # Se establece el formato de la tabla de paginación
-    page_table.column('Marco',width=100,anchor=tk.CENTER)
-    page_table.column('Espacio',width=100,anchor=tk.CENTER)
-    page_table.column('ID',width=50,anchor=tk.CENTER)
-    page_table.column('Estado',width=100,anchor=tk.CENTER)
+    page_table_object.column('Marco',width=100,anchor=tk.CENTER)
+    page_table_object.column('Espacio',width=100,anchor=tk.CENTER)
+    page_table_object.column('ID',width=50,anchor=tk.CENTER)
+    page_table_object.column('Estado',width=100,anchor=tk.CENTER)
     # Se escriben los títulos de la tabla de paginación
-    page_table.heading('Marco', text='Marco')
-    page_table.heading('Espacio', text='Espacio')
-    page_table.heading('ID', text='ID')
-    page_table.heading('Estado', text='Estado')
+    page_table_object.heading('Marco', text='Marco')
+    page_table_object.heading('Espacio', text='Espacio')
+    page_table_object.heading('ID', text='ID')
+    page_table_object.heading('Estado', text='Estado')
     # Se rellena por primera vez la tabla de paginación
-    for i in range(0,46):
-        page_table.insert(parent='',index=tk.END,values=(i,'0/5','','Libre'))
-    # Creación del arreglo que permite la verificación de los valores dentro de la tabla de paginación
-    page_array = ['Libre'] * 45
-    
-    # start_simulation = ttk.Button(master = window, text="Enviar proceso")
-    
-    # # Obtiene el primer proceso y lo envía a proceso en ejecución
-    # process_to_show = ready_list.pop(0)
-    # process_to_show.response_time = global_counter - process_to_show.start_time
-    # process_to_show.response_flag = True
+    for i in range(0,45):
+        page_table_object.insert(parent='',index=tk.END,values=page_table.page_array[i])
     
     # # Muestra la cola de listos
-    # if len(ready_list) != 0:
-    #     for process in ready_list:
-    #         ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
+    if len(ready_list) != 0:
+        for process in ready_list:
+            ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
             
-    # executing_process.insert("end",process_to_show)
+    executing_process.insert("end",process_to_show)
     
-    # counter(window, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes,amount_of_processes)
+    counter(window, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes,amount_of_processes,next_process)
     
-# def counter(window, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list, blocked_processes,amount_of_processes):
+def counter(window, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list, blocked_processes,amount_of_processes,next_process):
     
-#     global is_paused
-#     global process_to_show
-#     global is_interrupted
-#     global ready_list
-#     global new_list
-#     global blocked_list
-#     global is_executing_list_empty
-#     global is_generated_new_process
-#     global is_bcp_called
-#     global number_of_processes
-#     global global_counter
+    global is_paused
+    global process_to_show
+    global is_interrupted
+    global ready_list
+    global new_list
+    global blocked_list
+    global is_executing_list_empty
+    global is_generated_new_process
+    global is_bcp_called
+    global number_of_processes
+    global global_counter
+    global page_table
+    global page_table_object
     
-#     # Llamada recursiva cada segundo
-#     executing_process.after(1000,lambda: counter(window, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes,amount_of_processes))
+    # Llamada recursiva cada segundo
+    executing_process.after(1000,lambda: counter(window, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes,amount_of_processes,next_process))
     
-#     executing_process.delete('1.0',"end")
+    executing_process.delete('1.0',"end")
     
-#     window.bind('<KeyRelease>',on_key_release)
+    window.bind('<KeyRelease>',on_key_release)
+    
+    if len(new_list) > 0:
+        insert_process_in_table(new_list[0])
+        next_process.config(text=f"Siguiente proceso: ID({new_list[0].id}) Tamaño({new_list[0].size})")
+        delete_and_update_table(page_table.page_array)
+        new_process_title.config(text=f"Nuevos: {len(new_list)}")
+        ready_process.delete('1.0','end')
+        for process in ready_list:
+            ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
          
-#     if not is_paused:
-#         # Menos de 5 procesos bloqueados al mismo tiempo
-#         # Si la cola de listos no está vacía
-#         if is_interrupted and len(ready_list) > 0:
-#             # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
-#             if is_generated_new_process:
-#                 new_process_title.config(text=f"Nuevos: {len(new_list)}")  
-#                 ready_process.delete('1.0',"end")
-#                 for process in ready_list:
-#                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
-#                 # Se regresa la bandera a falso
-#                 is_generated_new_process = False
+    if not is_paused:
+        # Si la cola de listos no está vacía
+        if is_interrupted and len(ready_list) > 0:
+            # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
+            if is_generated_new_process:
+                new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                ready_process.delete('1.0',"end")
+                for process in ready_list:
+                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
+                # Se regresa la bandera a falso
+                is_generated_new_process = False
             
-#             # Checa si no existe un proceso en ejecución
-#             if is_executing_list_empty == True:
-#                 # En caso de que sea cierto toma un proceso de la cola de listos para ejecutarse
-#                 process_to_show = ready_list.pop(0)
-#                 # Checa si ya se midió el tiempo de respuesta
-#                 if process_to_show.response_flag == False:
-#                     process_to_show.response_time = global_counter - process_to_show.start_time
-#                     process_to_show.response_flag = True
-#                 # Regresa la bandera a falso pues ya existe un proceso en ejecución
-#                 is_executing_list_empty = False
-#             else:
-#                 # Si hay un proceso en ejecución lo manda a bloqueo
-#                 blocked_list.append(process_to_show)
-#                 # Obtiene un nuevo proceso a ejecutar
-#                 process_to_show = ready_list.pop(0)
-#                 # Si el proceso no se ha medido su tiempo de respuesta lo mide
-#                 if process_to_show.response_flag == False:
-#                     process_to_show.response_time = global_counter - process_to_show.start_time
-#                     process_to_show.response_flag = True
+            # Checa si no existe un proceso en ejecución
+            if is_executing_list_empty == True:
+                # En caso de que sea cierto toma un proceso de la cola de listos para ejecutarse
+                process_to_show = ready_list.pop(0)
+                # Actualiza su estado en la tabla de paginación
+                page_table.change_state(process_to_show.id,'En ejecución')
+                # Actualiza la tabla de paginación
+                delete_and_update_table(page_table.page_array)
+                # Checa si ya se midió el tiempo de respuesta
+                if process_to_show.response_flag == False:
+                    process_to_show.response_time = global_counter - process_to_show.start_time
+                    process_to_show.response_flag = True
+                # Regresa la bandera a falso pues ya existe un proceso en ejecución
+                is_executing_list_empty = False
+            else:
+                # Cambia el estado del proceso en ejecución a bloqueado en la tabla de paginación
+                page_table.change_state(process_to_show.id, "Bloqueado")
+                # Si hay un proceso en ejecución lo manda a bloqueo
+                blocked_list.append(process_to_show)
+                # Obtiene un nuevo proceso a ejecutar
+                process_to_show = ready_list.pop(0)
+                # Cambia el estado del nuevo proceso en ejecución a ejecución
+                page_table.change_state(process_to_show.id, "Ejecución")
+                # Actualiza la tabla de paginación
+                delete_and_update_table(page_table.page_array)
+                # Si el proceso no se ha medido su tiempo de respuesta lo mide
+                if process_to_show.response_flag == False:
+                    process_to_show.response_time = global_counter - process_to_show.start_time
+                    process_to_show.response_flag = True
             
-#             # Regresa el estado de interrupción a falso
-#             is_interrupted = False    
+            # Regresa el estado de interrupción a falso
+            is_interrupted = False    
             
-#             executing_process.insert('1.0',process_to_show)
+            executing_process.insert('1.0',process_to_show)
             
-#             ready_process.delete('1.0',"end")
-#             for process in ready_list:
-#                 ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
+            ready_process.delete('1.0',"end")
+            for process in ready_list:
+                ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
             
-#             blocked_processes.delete('1.0',"end")
-#             for process in blocked_list:
-#                 blocked_processes.insert("end","ID: " + str(process.id) + " Tiempo bloqueado: " + str(process.blocked_time) + "\n")
+            blocked_processes.delete('1.0',"end")
+            for process in blocked_list:
+                blocked_processes.insert("end","ID: " + str(process.id) + " Tiempo bloqueado: " + str(process.blocked_time) + "\n")
                 
-#         # 5 procesos bloqueados al mismo tiempo, por tanto la cola de listos está vacía
-#         elif is_interrupted and len(ready_list) == 0:
-#             # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
-#             if is_generated_new_process:
-#                 new_process_title.config(text=f"Nuevos: {len(new_list)}")  
-#                 ready_process.delete('1.0',"end")
-#                 for process in ready_list:
-#                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
-#                 # Se regresa la bandera a falso
-#                 is_generated_new_process = False
-#             # Aumenta el contador global
-#             global_counter += 1
-#             global_counter_container.config(text=f"Contador global: {global_counter}")
-#             # Si existe un proceso en ejecución lo bloquea
-#             if not is_executing_list_empty:
-#                 blocked_list.append(process_to_show)
-#             # Como todos los procesos están en bloqueados, entonces no hay procesos en ejecución
-#             is_executing_list_empty = True
-#             # Si hay más de un proceso bloqueado continúa la cuenta hasta que uno sale de bloqueo
-#             if len(blocked_list) != 0:
-#                 blocked_processes.delete('1.0',"end")
-#                 for process in blocked_list:
-#                     if process.blocked_time < 8:
-#                         process.blocked_time += 1
-#                         blocked_processes.insert("end","ID: " + str(process.id) + " Tiempo bloqueado: " + str(process.blocked_time) + "\n")
-#                     else:
-#                         # Reinicia el tiempo de bloqueo para que pueda volver a bloquearse
-#                         process.blocked_time = 0
-#                         # Añade el proceso a la cola de listos
-#                         ready_list.append(process)
-#                         # Quita el proceso de la lista de bloqueados
-#                         blocked_list.remove(process)
-#                         break
-#         # Cuando el proceso está en ejecución y no se produce una interrupción
-#         elif process_to_show.TRE != 0 and not is_interrupted:  
-#             # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
-#             if is_generated_new_process:
-#                 new_process_title.config(text=f"Nuevos: {len(new_list)}")  
-#                 ready_process.delete('1.0',"end")
-#                 for process in ready_list:
-#                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
-#                 # Se regresa la bandera a falso
-#                 is_generated_new_process = False               
-#             # Actualiza los contadores de tiempo restante y tiempo transcurrido del proceso               
-#             process_to_show.TRE -= 1
-#             process_to_show.TTE += 1
-#             # Incrementa la cantidad de tiempo transcurrido hasta el valor máximo del quantum
-#             process_to_show.transcurred_quantum += 1
-#             # Actualiza el contador global
-#             global_counter += 1
-#             global_counter_container.config(text=f"Contador global: {global_counter}")
-#             executing_process.insert("end",process_to_show)
-#             # Si existen uno o más procesos bloqueados
-#             if len(blocked_list) != 0:
-#                 blocked_processes.delete('1.0',"end")
-#                 i = 0
-#                 # Ciclo while que actualiza constantemente el tiempo de bloqueo de los procesos bloqueados
-#                 while i < len(blocked_list): 
-#                     if len(blocked_list) != 0:
-#                         if blocked_list[i].blocked_time < 8:
-#                             blocked_list[i].blocked_time += 1
-#                             blocked_processes.insert("end","ID: " + str(blocked_list[i].id) + " Tiempo bloqueado: " + str(blocked_list[i].blocked_time) + "\n")
-#                         else:
-#                             blocked_list[i].blocked_time = 0
-#                             ready_list.append(blocked_list[i])
-#                             ready_process.insert("end","ID: " + str(blocked_list[i].id) + " Tiempo máximo estimado: " + str(blocked_list[i].estimated_time) + "Tiempo Transcurrido: " + str(blocked_list[i].TTE) + "\n")
-#                             blocked_list.remove(blocked_list[i])
-#                             # Actualiza el contador, de forma que nunca se pase del tamaño del arreglo
-#                             i = -1
-#                         i += 1   
-#             # Si el valor del quantum transcurrido es igual al valor ingresado del quantum
-#             if process_to_show.transcurred_quantum == process_to_show.quantum:
-#                 # Agrega el proceso a la cola de listos
-#                 ready_list.append(process_to_show)
-#                 # Regresa el valor del quantum transcurrido a 0
-#                 process_to_show.transcurred_quantum = 0
-#                 # Obtiene un nuevo proceso a ejecutar
-#                 process_to_show = ready_list.pop(0)   
-#                 if not process_to_show.response_flag:
-#                     process_to_show.response_flag = True
-#                     process_to_show.response_time = global_counter - process_to_show.start_time
-#                 # Actualiza la cola de listos
-#                 ready_process.delete('1.0',"end")
-#                 for process in ready_list:
-#                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
-#                 # Actualiza el cuadro de proceso en ejecución
-#                 executing_process.delete('1.0',"end")
-#                 executing_process.insert("end",process_to_show)
+        # 5 procesos bloqueados al mismo tiempo, por tanto la cola de listos está vacía
+        elif is_interrupted and len(ready_list) == 0:
+            page_table.change_state(blocked_list[-1].id,'Bloqueado')
+            delete_and_update_table(page_table.page_array)
+            # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
+            if is_generated_new_process:
+                new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                ready_process.delete('1.0',"end")
+                for process in ready_list:
+                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
+                # Se regresa la bandera a falso
+                is_generated_new_process = False
+            # Aumenta el contador global
+            global_counter += 1
+            global_counter_container.config(text=f"Contador global: {global_counter}")
+            # Si existe un proceso en ejecución lo bloquea
+            if not is_executing_list_empty:
+                blocked_list.append(process_to_show)
+            # Como todos los procesos están en bloqueados, entonces no hay procesos en ejecución
+            is_executing_list_empty = True
+            # Si hay más de un proceso bloqueado continúa la cuenta hasta que uno sale de bloqueo
+            if len(blocked_list) != 0:
+                blocked_processes.delete('1.0',"end")
+                for process in blocked_list:
+                    if process.blocked_time < 8:
+                        process.blocked_time += 1
+                        blocked_processes.insert("end","ID: " + str(process.id) + " Tiempo bloqueado: " + str(process.blocked_time) + "\n")
+                    else:
+                        # Reinicia el tiempo de bloqueo para que pueda volver a bloquearse
+                        process.blocked_time = 0
+                        # Cambia el estado del proceso a listo en la tabla de paginación
+                        page_table.change_state(process.id, 'Listo')
+                        # Añade el proceso a la cola de listos
+                        ready_list.append(process)
+                        # Actualiza la tabla de paginación
+                        delete_and_update_table(page_table.page_array)
+                        # Quita el proceso de la lista de bloqueados
+                        blocked_list.remove(process)
+                        break
+        # Cuando el proceso está en ejecución y no se produce una interrupción
+        elif process_to_show.TRE != 0 and not is_interrupted:  
+            # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
+            if is_generated_new_process:
+                new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                ready_process.delete('1.0',"end")
+                for process in ready_list:
+                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
+                # Se regresa la bandera a falso
+                is_generated_new_process = False               
+            # Actualiza los contadores de tiempo restante y tiempo transcurrido del proceso               
+            process_to_show.TRE -= 1
+            process_to_show.TTE += 1
+            # Incrementa la cantidad de tiempo transcurrido hasta el valor máximo del quantum
+            process_to_show.transcurred_quantum += 1
+            # Actualiza el contador global
+            global_counter += 1
+            global_counter_container.config(text=f"Contador global: {global_counter}")
+            executing_process.insert("end",process_to_show)
+            # Si existen uno o más procesos bloqueados
+            if len(blocked_list) != 0:
+                blocked_processes.delete('1.0',"end")
+                i = 0
+                # Ciclo while que actualiza constantemente el tiempo de bloqueo de los procesos bloqueados
+                while i < len(blocked_list): 
+                    if len(blocked_list) != 0:
+                        if blocked_list[i].blocked_time < 8:
+                            blocked_list[i].blocked_time += 1
+                            blocked_processes.insert("end","ID: " + str(blocked_list[i].id) + " Tiempo bloqueado: " + str(blocked_list[i].blocked_time) + "\n")
+                        else:
+                            blocked_list[i].blocked_time = 0
+                            # Actualiza su estado en la tabla de paginación
+                            page_table.change_state(blocked_list[i].id, 'Listo')
+                            # Actualiza la tabla de paginación
+                            delete_and_update_table(page_table.page_array)
+                            ready_list.append(blocked_list[i])
+                            ready_process.insert("end","ID: " + str(blocked_list[i].id) + " Tiempo máximo estimado: " + str(blocked_list[i].estimated_time) + "Tiempo Transcurrido: " + str(blocked_list[i].TTE) + "\n")
+                            blocked_list.remove(blocked_list[i])
+                            # Actualiza el contador, de forma que nunca se pase del tamaño del arreglo
+                            i = -1
+                        i += 1   
+            # Si el valor del quantum transcurrido es igual al valor ingresado del quantum
+            if process_to_show.transcurred_quantum == process_to_show.quantum:
+                # Cambia el estado en la tabla de procesos
+                page_table.change_state(process_to_show.id, 'Listo')
+                # Agrega el proceso a la cola de listos
+                ready_list.append(process_to_show)
+                # Regresa el valor del quantum transcurrido a 0
+                process_to_show.transcurred_quantum = 0
+                # Obtiene un nuevo proceso a ejecutar
+                process_to_show = ready_list.pop(0)   
+                # Cambia el estado en la tabla de procesos
+                page_table.change_state(process_to_show.id, 'En ejecución')
+                if not process_to_show.response_flag:
+                    process_to_show.response_flag = True
+                    process_to_show.response_time = global_counter - process_to_show.start_time
+                # Actualiza la cola de listos
+                ready_process.delete('1.0',"end")
+                for process in ready_list:
+                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
+                delete_and_update_table(page_table.page_array)
+                # Actualiza el cuadro de proceso en ejecución
+                executing_process.delete('1.0',"end")
+                executing_process.insert("end",process_to_show)
             
-#         # Se termina un proceso porque su tiempo restante es 0
-#         elif process_to_show.TRE == 0:
-#             # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
-#             if is_generated_new_process:
-#                 new_process_title.config(text=f"Nuevos: {len(new_list)}")  
-#                 ready_process.delete('1.0',"end")
-#                 for process in ready_list:
-#                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
-#                 # Se regresa la bandera a falso
-#                 is_generated_new_process = False
-#             # Se actualiza la lista de procesos terminados
-#             if not process_to_show in finished_process_list:
-#                 process_to_show.finishing_time = global_counter
-#                 finished_process_list.append(process_to_show)
-#                 finished_process_show(finished_process_list,finished_process)
+        # Se termina un proceso porque su tiempo restante es 0
+        elif process_to_show.TRE == 0:
+            # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
+            if is_generated_new_process:
+                new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                ready_process.delete('1.0',"end")
+                for process in ready_list:
+                    ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
+                # Se regresa la bandera a falso
+                is_generated_new_process = False
+            # Se actualiza la lista de procesos terminados
+            if not process_to_show in finished_process_list:
+                process_to_show.finishing_time = global_counter
+                finished_process_list.append(process_to_show)
+                page_table.delete_process(process_to_show.id)
+                finished_process_show(finished_process_list,finished_process)
             
-#             # Si la cola de listos no está vacía, se saca el siguiente proceso
-#             if len(ready_list) != 0:
-#                 process_to_show = ready_list.pop(0)
-#                 if process_to_show.response_flag == False:
-#                     process_to_show.response_time = global_counter - process_to_show.start_time
-#                     process_to_show.response_flag = True
+            # Si la cola de listos no está vacía, se saca el siguiente proceso
+            if len(ready_list) != 0:
+                process_to_show = ready_list.pop(0)
+                if process_to_show.response_flag == False:
+                    process_to_show.response_time = global_counter - process_to_show.start_time
+                    process_to_show.response_flag = True
                 
-#                  # Imprime el nuevo proceso a ejecutar
-#                 executing_process.insert("end",process_to_show)
+                # Actualiza el estado en la tabla de paginación
+                page_table.change_state(process_to_show.id,'En ejecución')
+                # Actualiza la tabla de paginación
+                delete_and_update_table(page_table.page_array)
+                if len(new_list) > 0:
+                    insert_process_in_table(new_list[0],new_list)
+                 # Imprime el nuevo proceso a ejecutar
+                executing_process.insert("end",process_to_show)
                 
-#                 # Si hay uno o más procesos en la cola de procesos nuevos, añade el primero a la cola de listos
-#                 if len(new_list) > 0:
-#                     # Establece el tiempo de inicio del proceso nuevo
-#                     new_list[0].start_time = global_counter
-#                     ready_list.append(new_list.pop(0))
-#                 # Actualiza el contador de la cola de procesos nuevos
-#                 new_process_title.config(text=f"Nuevos: {len(new_list)}")
+                # Si hay uno o más procesos en la cola de procesos nuevos, añade el primero a la cola de listos
+                if len(new_list) > 0:
+                    # Establece el tiempo de inicio del proceso nuevo
+                    new_list[0].start_time = global_counter
+                    ready_list.append(new_list.pop(0))
+                # Actualiza el contador de la cola de procesos nuevos
+                new_process_title.config(text=f"Nuevos: {len(new_list)}")
+                # Actualiza el banner de siguiente proceso
+                if len(new_list) > 0:
+                    next_process.config(text=f"Siguiente proceso: ID({new_list[0].id}) Tamaño({new_list[0].size})")
+                else:
+                    next_process.config(text=f"Siguiente proceso: ID() Tamaño()")
                 
-#                 # Reimprime la lista de procesos nuevos
-#                 ready_process.delete('1.0', "end")
-#                 for process in ready_list:
-#                     ready_process.insert("end","ID: "+str(process.id)+" Tiempo máximo estimado: "+str(process.estimated_time)+"Tiempo Transcurrido: " + str(process.TTE) + "\n")
+                # Reimprime la lista de procesos nuevos
+                ready_process.delete('1.0', "end")
+                for process in ready_list:
+                    ready_process.insert("end","ID: "+str(process.id)+" Tiempo máximo estimado: "+str(process.estimated_time)+"Tiempo Transcurrido: " + str(process.TTE) + "\n")
                 
-#                 # Actualiza la lista de procesos terminados
-#                 finished_process_show(finished_process_list,finished_process)
-#             else: 
-#                 # Si todos los procesos han terminado
-#                 if(len(finished_process_list) == number_of_processes):
-#                     # Actualiza la lista de procesos terminados, para añadir el último proceso a dicha lista
-#                     finished_process_show(finished_process_list,finished_process)
-#                     # Muestra el BCP
-#                     for widget in window.winfo_children():
-#                         widget.destroy()
-#                     bcp(window,global_counter)
-#                 # Si la cola de listos no tiene procesos, y la cola de nuevos tampoco, todos los procesos se encuentran bloqueados
-#                 elif(len(blocked_list) != 0) and len(new_list) == 0:
-#                     # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
-#                     if is_generated_new_process:
-#                         new_process_title.config(text=f"Nuevos: {len(new_list)}")  
-#                         ready_process.delete('1.0',"end")
-#                         for process in ready_list:
-#                             ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
-#                         # Se regresa la bandera a falso
-#                         is_generated_new_process = False
-#                     # Llama recursivamente cada segundo a la funcion finishes_remaining_blocked_process que se encarga de terminar la ejecución de un proceso
-#                     # bloqueado para salir de este estado
-#                     blocked_processes.after(1000,lambda:finishes_remaining_blocked_process(blocked_processes))
-#                     # Actualiza el contador global
-#                     global_counter += 1
-#                     global_counter_container.config(text=f"Contador global: {global_counter}")
-#                     # Checa si el primer proceso de la lista de bloqueado haya terminado su tiempo de bloqueo
-#                     if blocked_list[0].blocked_time == 8:
-#                         blocked_processes.delete('1.0',"end")
-#                         # Reestablece su valor de tiempo de bloqueado a 0 para que se pueda volver a bloquear
-#                         blocked_list[0].blocked_time = 0
-#                         # Agrega el proceso a la cola de listos
-#                         ready_list.append(blocked_list.pop(0))
-#                         #Restaura el proceso a un proceso no nulo
-#                         process_to_show.null_process = False
-#                         # Agrega el proceso a ejecución
-#                         process_to_show = ready_list.pop()
-#                         # Actualiza el recuadro de GUI
-#                         executing_process.insert("end",process_to_show)
-#                         # Evita que se siga llamando recursivamente a la función finishes_remaining_blocked_process
-#                         blocked_processes.after_cancel(blocked_processes)  
-#                     else:
-#                         blocked_processes.delete('1.0', "end")
-#                         for process in blocked_list:
-#                             blocked_processes.insert("end","ID: "+str(process.id)+" Tiempo bloqueado: "+str(process.blocked_time)+"\n")
-#                 # Si la cola de listos está vacía pero la cola de nuevos no está vacía se obtiene el primer dato de la cola de nuevos como proceso en ejecución
-#                 elif len(blocked_list) != 0 and len(new_list) != 0:
-#                     # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
-#                     if is_generated_new_process:
-#                         new_process_title.config(text=f"Nuevos: {len(new_list)}")  
-#                         ready_process.delete('1.0',"end")
-#                         for process in ready_list:
-#                             ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
-#                         # Se regresa la bandera a falso
-#                         is_generated_new_process = False
-#                     # Añade el proceso a cola de listos
-#                     ready_list.append(new_list.pop(0)) 
-#                     # Convierte el proceso en el proceso a ejecutar    
-#                     process_to_show = ready_list.pop()
-#                     # Establece el tiempo de incio y el tiempo de respuesta
-#                     process_to_show.start_time = global_counter
-#                     process_to_show.response_time = global_counter - process_to_show.start_time   
+                # Actualiza la lista de procesos terminados
+                finished_process_show(finished_process_list,finished_process)
+            else: 
+                # Si todos los procesos han terminado
+                if(len(finished_process_list) == number_of_processes):
+                    # Actualiza la lista de procesos terminados, para añadir el último proceso a dicha lista
+                    finished_process_show(finished_process_list,finished_process)
+                    # Muestra el BCP
+                    for widget in window.winfo_children():
+                        widget.destroy()
+                    bcp(window,global_counter)
+                # Si la cola de listos no tiene procesos, y la cola de nuevos tampoco, todos los procesos se encuentran bloqueados
+                elif(len(blocked_list) != 0) and len(new_list) == 0:
+                    # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
+                    if is_generated_new_process:
+                        new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                        ready_process.delete('1.0',"end")
+                        for process in ready_list:
+                            ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
+                        # Se regresa la bandera a falso
+                        is_generated_new_process = False
+                    # Llama recursivamente cada segundo a la funcion finishes_remaining_blocked_process que se encarga de terminar la ejecución de un proceso
+                    # bloqueado para salir de este estado
+                    blocked_processes.after(1000,lambda:finishes_remaining_blocked_process(blocked_processes))
+                    # Actualiza el contador global
+                    global_counter += 1
+                    global_counter_container.config(text=f"Contador global: {global_counter}")
+                    # Checa si el primer proceso de la lista de bloqueado haya terminado su tiempo de bloqueo
+                    if blocked_list[0].blocked_time == 8:
+                        blocked_processes.delete('1.0',"end")
+                        # Reestablece su valor de tiempo de bloqueado a 0 para que se pueda volver a bloquear
+                        blocked_list[0].blocked_time = 0
+                        # Actualiza su estado en la tabla de paginación
+                        page_table.change_state(blocked_list[0].id, 'Listo')
+                        # Agrega el proceso a la cola de listos
+                        ready_list.append(blocked_list.pop(0))
+                        #Restaura el proceso a un proceso no nulo
+                        process_to_show.null_process = False
+                        # Agrega el proceso a ejecución
+                        process_to_show = ready_list.pop()
+                        # Actualiza el recuadro de GUI
+                        executing_process.insert("end",process_to_show)
+                        # Actualiza la tabla de paginación
+                        delete_and_update_table(page_table.page_array)
+                        # Evita que se siga llamando recursivamente a la función finishes_remaining_blocked_process
+                        blocked_processes.after_cancel(blocked_processes)  
+                    else:
+                        blocked_processes.delete('1.0', "end")
+                        for process in blocked_list:
+                            blocked_processes.insert("end","ID: "+str(process.id)+" Tiempo bloqueado: "+str(process.blocked_time)+"\n")
+                # Si la cola de listos está vacía pero la cola de nuevos no está vacía se obtiene el primer dato de la cola de nuevos como proceso en ejecución
+                elif len(blocked_list) != 0 and len(new_list) != 0:
+                    page_table.change_state(blocked_list[0].id,'Bloqueado')
+                    delete_and_update_table(page_table.page_array)
+                    # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
+                    if is_generated_new_process:
+                        new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                        ready_process.delete('1.0',"end")
+                        for process in ready_list:
+                            ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
+                        # Se regresa la bandera a falso
+                        is_generated_new_process = False
+                    # Añade el proceso a cola de listos
+                    ready_list.append(new_list.pop(0)) 
+                    # Convierte el proceso en el proceso a ejecutar    
+                    process_to_show = ready_list.pop()
+                    # Establece el tiempo de incio y el tiempo de respuesta
+                    process_to_show.start_time = global_counter
+                    process_to_show.response_time = global_counter - process_to_show.start_time   
                      
-#         elif process_to_show.transcurred_quantum == process_to_show.quantum:
-#             process_to_show.transcurred_quantum = 0
-#             ready_list.append(process_to_show)
-#             process_to_show = ready_list.pop(0)   
-#             if not process_to_show.response_flag:
-#                 process_to_show.response_flag = True
-#                 process_to_show.response_time = global_counter - process_to_show.start_time     
-#     else:
-#         if is_bcp_called:
-#             window2 = ttk.Window(title='Bloque de control de procesos')
-#             window2.state('zoomed')
-#             bcp(window2,global_counter)
-#             is_bcp_called = False
-#         # Si está pausado entonces se mantiene el proceso en pantalla
-#         executing_process.insert("end",process_to_show)
+        elif process_to_show.transcurred_quantum == process_to_show.quantum:
+            process_to_show.transcurred_quantum = 0
+            ready_list.append(process_to_show)
+            process_to_show = ready_list.pop(0)   
+            if not process_to_show.response_flag:
+                process_to_show.response_flag = True
+                process_to_show.response_time = global_counter - process_to_show.start_time     
+    else:
+        if is_bcp_called:
+            window2 = ttk.Window(title='Bloque de control de procesos')
+            window2.state('zoomed')
+            bcp(window2,global_counter)
+            is_bcp_called = False
+        # Si está pausado entonces se mantiene el proceso en pantalla
+        executing_process.insert("end",process_to_show)
 
-# def finished_process_show(finished_process_list,finished_process):
-#     finished_process.delete('1.0',"end")
-#     for finished in finished_process_list:              #Imprime la lista de finalizados
-#         if not finished.error: 
-#             # Si no terminó por error se calculan los tiempos
-#             finished.calculate_times()
-#             finished_process.insert("end", f"ID: " + str(finished.id) + " Operación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + " Resultado: " + str(finished.operate(error=False)) + "\n\n")
-#         else:
-#             # Si terminó por error el tiempo de servicio será igual al tiempo que estuvo en ejecución
-#             finished.service_time = finished.TTE
-#             # Calcula los tiempos
-#             finished.calculate_times()
-#             finished_process.insert("end", f"ID: " + str(finished.id) + " Operación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + " Resultado: " + str(finished.operate(error=True)) + "\n\n")
+def finished_process_show(finished_process_list,finished_process):
+    finished_process.delete('1.0',"end")
+    for finished in finished_process_list:              #Imprime la lista de finalizados
+        if not finished.error: 
+            # Si no terminó por error se calculan los tiempos
+            finished.calculate_times()
+            finished_process.insert("end", f"ID: " + str(finished.id) + " Operación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + " Resultado: " + str(finished.operate(error=False)) + "\n\n")
+        else:
+            # Si terminó por error el tiempo de servicio será igual al tiempo que estuvo en ejecución
+            finished.service_time = finished.TTE
+            # Calcula los tiempos
+            finished.calculate_times()
+            finished_process.insert("end", f"ID: " + str(finished.id) + " Operación: " + str(finished.first_data) + finished.operation + str(finished.second_data) + " Resultado: " + str(finished.operate(error=True)) + "\n\n")
     
-# def on_key_release(event):
-#     global is_paused
-#     global process_to_show
-#     global is_interrupted
-#     global is_generated_new_process
-#     global is_bcp_called
-#     global global_counter
+def on_key_release(event):
+    global is_paused
+    global process_to_show
+    global is_interrupted
+    global is_generated_new_process
+    global is_bcp_called
+    global global_counter
     
-#     if event.keysym == 'p' and not is_paused:
-#         is_paused = True
-#     elif event.keysym == 'c':
-#         is_paused = False
-#     elif event.keysym == 'e' and not is_paused:
-#         process_to_show.TRE = 0
-#         process_to_show.error = True
-#     elif event.keysym == 'i' and not is_paused:
-#         is_interrupted = True
-#         process_to_show.transcurred_quantum = 0
-#     elif event.keysym == 'n' and not is_paused:
-#         generate_new_process(global_counter)
-#         is_generated_new_process = True
-#     elif event.keysym == 'b' and not is_paused:
-#         is_paused = True
-#         is_bcp_called = True
+    if event.keysym == 'p' and not is_paused:
+        is_paused = True
+    elif event.keysym == 'c':
+        is_paused = False
+    elif event.keysym == 'e' and not is_paused:
+        process_to_show.TRE = 0
+        process_to_show.error = True
+    elif event.keysym == 'i' and not is_paused:
+        is_interrupted = True
+        process_to_show.transcurred_quantum = 0
+    elif event.keysym == 'n' and not is_paused:
+        generate_new_process(global_counter)
+        is_generated_new_process = True
+    elif event.keysym == 'b' and not is_paused:
+        is_paused = True
+        is_bcp_called = True
 
-# def generate_new_process(global_counter):
-#     global new_list
-#     global ready_list
-#     global blocked_list
-#     global number_of_processes
-#     global quantum_size
+def generate_new_process(global_counter):
+    global new_list
+    global ready_list
+    global blocked_list
+    global number_of_processes
+    global quantum_size
+    global page_table
+    global page_table_object
              
-#     ID = number_of_processes
-#     number_of_processes += 1
-#     first_data = rd.randint(0,10000)
-#     second_data = rd.randint(0,10000)
-#     estimated_time = rd.randint(6,18)
-#     if second_data == 0:
-#         operation_list = ['+','-','*']
-#     else:
-#         operation_list = ['+','-','*','/','%']
-#     operation = rd.choices(operation_list)
-#     operation = operation[0]
+    ID = number_of_processes
+    number_of_processes += 1
+    first_data = rd.randint(0,10000)
+    second_data = rd.randint(0,10000)
+    estimated_time = rd.randint(6,18)
+    size = rd.randint(6,26)
+    if second_data == 0:
+        operation_list = ['+','-','*']
+    else:
+        operation_list = ['+','-','*','/','%']
+    operation = rd.choices(operation_list)
+    operation = operation[0]
     
-#     process = Process(operation,first_data,second_data,estimated_time,ID, quantum_size)
-#     process.response_flag = False
-#     len_ready_list = len(ready_list)
-#     len_blocked_list = len(blocked_list)
+    process = Process(operation,first_data,second_data,estimated_time,ID, quantum_size, size)
+    process.response_flag = False
+    len_ready_list = len(ready_list)
+    len_blocked_list = len(blocked_list)
     
-#     # Si la lista de bloqueados es igual a 5 entonces se agrega el proceso a la lista de nuevos
-#     if len_blocked_list == 5: 
-#         new_list.append(process)
-#     # O en caso de que la suma de la lista de bloqueados y la lista de listos sea menor o igual a 4 se agrega el proceso a la lista de nuevos
-#     elif len_ready_list + len_blocked_list >= 4:
-#         new_list.append(process)
-#     else:
-#         process.start_time = global_counter
-#         ready_list.append(process)
+    if page_table.count_free_pages() >= process.page_number:
+        process.start_time = global_counter
+        ready_list.append(process)
+        for i in range(0,41):
+                if size > 0:
+                    if page_table.page_array[i][3] == 'Libre':
+                        if size >= 5:
+                            page_table.page_array.pop(i)
+                            page_table.page_array.insert(i, [i,'5/5',process.id,'Listo'])
+                        else:
+                            page_table.page_array.pop(i)
+                            page_table.page_array.insert(i, [i,f'{size}/5',process.id,'Listo'])
+                        size -= 5
+                else: 
+                    break
+        delete_and_update_table(page_table.page_array)
+    else:
+        new_list.append(process)
+    
+    
+    # Si la lista de bloqueados es igual a 5 entonces se agrega el proceso a la lista de nuevos
+    # if len_blocked_list == 5: 
+    #     new_list.append(process)
+    # O en caso de que la suma de la lista de bloqueados y la lista de listos sea menor o igual a 4 se agrega el proceso a la lista de nuevos
+    # elif len_ready_list + len_blocked_list >= 4:
+    #     new_list.append(process)
+    # else:
+    #     process.start_time = global_counter
+    #     ready_list.append(process)
                
 def bcp(window, global_counter):
     global blocked_list
@@ -652,22 +795,29 @@ def bcp(window, global_counter):
             values = (process.id,process.serializeOperation(),' ',' ',' ',' ',' ',' ',' ',process.TRE,' ')
             table.insert(parent='',index=tk.END,values=values)
     
-# def second_key_release(event):
-#     global is_paused
-#     global is_bcp_called
-#     if event.keysym == 'c':
-#         event.widget.destroy()
-#         is_paused = False
-#         is_bcp_called = False
+def second_key_release(event):
+    global is_paused
+    global is_bcp_called
+    if event.keysym == 'c':
+        event.widget.destroy()
+        is_paused = False
+        is_bcp_called = False
     
-# def finishes_remaining_blocked_process(blocked_processes):
-#     global blocked_list
-#     # Si hay más de un proceso bloqueado actualiza su tiempo de bloqueo
-#     if len(blocked_list) != 0:
-#         blocked_processes.delete('1.0',"end")
-#         for process in blocked_list:
-#             # Incrementa el tiempo de bloqueo
-#             process.blocked_time += 1
-#             blocked_processes.insert("end","ID: "+str(process.id)+" Tiempo bloqueado: "+str(process.blocked_time)+"\n")
+def finishes_remaining_blocked_process(blocked_processes):
+    global blocked_list
+    # Si hay más de un proceso bloqueado actualiza su tiempo de bloqueo
+    if len(blocked_list) != 0:
+        blocked_processes.delete('1.0',"end")
+        for process in blocked_list:
+            # Incrementa el tiempo de bloqueo
+            process.blocked_time += 1
+            blocked_processes.insert("end","ID: "+str(process.id)+" Tiempo bloqueado: "+str(process.blocked_time)+"\n")
+
+def delete_and_update_table(new_values):
+    global page_table_object
+    for i in page_table_object.get_children():
+        page_table_object.delete(i)
+    for i in range(0,45):
+        page_table_object.insert(parent='',index=tk.END,values=new_values[i])
 
 assignation()
