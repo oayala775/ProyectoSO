@@ -76,9 +76,6 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
     global new_list
     global ready_list
     
-    process_count = 0
-    aux_collection = []
-    
     # Conversión del valor del quantum
     quantum_size = quantum_text.get()
     quantum_size = int(quantum_size)
@@ -107,64 +104,91 @@ def verifications(window,amount_of_processes_text,amount_of_processes_label, amo
         
         i += 1
     
-    i = 0
+    # Establece el numero de procesos totales
     number_of_processes = amount_of_processes
-    # Mientras que los procesos sean menores a 5 o al total ingresado se añaden a la cola de listos
+    # Obtiene el proceso a ejecutar de la lista de nuevos procesos
     process_to_show = new_list.pop(0)
+    # Establece su tiempo de respuesta a 0 (valor del contador global en este instante)
     process_to_show.start_time = global_counter
+    # Establece el valor del tiempo de respuesta (0 en este instante)
     process_to_show.response_time = global_counter - process_to_show.start_time
+    # Al ya cambiar el valor del tiempo de respuesta se enciende la bandera que indica este hecho
     process_to_show.response_flag = True
+    # Realiza una copia del tamaño del proceso a ejecutar
+    size = process_to_show.size
+    # Busca espacio libre en la tabla de paginación para almacenar el proceso a ejecutar
     for i in range(0,41):
+        # Checa si el tamaño es mayor a 0 y si es así se inserta el proceso en la tabla de paginación
         if size > 0:
+            # Si se encuentra un espacio libre
             if page_table.page_array[i][3] == 'Libre':
+                # Checa si el tamaño es mayor o igual que 5
                 if size >= 5:
+                    # Sustituye el valor actual de la tabla de paginación por el proceso a ejecutar
                     page_table.page_array.pop(i)
                     page_table.page_array.insert(i, [i,'5/5',process_to_show.id,'Ejecución'])
+                # Si el tamaño es menor que 5
                 else:
+                    # Sustituye el valor actual de la tabla de paginación por el tamaño restante del proceso a ejecutar
                     page_table.page_array.pop(i)
                     page_table.page_array.insert(i, [i,f'{size}/5',process_to_show.id,'Ejecución'])
+                # Disminuye en 5 (tamaño del marco de página) el tamaño del proceso
                 size -= 5
+        # Si el tamaño es menor a 5, el proceso se ha terminado de capturar
         else:
             break
     
+    # Se crea una variable que servirá para el proceso de la primer captura de datos
     last_id = 0
+    # Para cada proceso en la lista de nuevos
     for process in new_list:
+        # Se establece el valor del tamaño del proceso
         size = process.size
+        # Si encuentra espacio libre en la tabla de paginación para almacenar el proceso (hay más páginas libres que el número de páginas que requiere el proceso)
         if page_table.count_free_pages() >= process.page_number:
+            # Se actualiza el valor del último id al del proceso actual
             last_id = process.id
+            # Se itera por cada página del proceso
             for i in range(0,41):
+                    # Si el tamaño del proceso es mayor a 0
                     if size > 0:
+                        # Si se encuentra un marco de página libre
                         if page_table.page_array[i][3] == 'Libre':
+                            # Checa si el tamaño es mayor o igual a 5
                             if size >= 5:
+                                # Sustituye el valor actual de la tabla de paginación por el proceso a ejecutar
                                 page_table.page_array.pop(i)
                                 page_table.page_array.insert(i, [i,'5/5',process.id,'Listo'])
+                            # Si el tamaño es menor a 5
                             else:
+                                # Sustituye el valor actual de la tabla de paginación por el tamaño restante del proceso 
                                 page_table.page_array.pop(i)
                                 page_table.page_array.insert(i, [i,f'{size}/5',process.id,'Listo'])
+                            # Disminuye en 5 (tamaño del marco de página) el tamaño del proceso
                             size -= 5
+                    # Si el tamaño del proceso es menor a 5, el proceso se ha terminado de capturar
                     else: 
                         break
+        # Si no hay un espacio libre se ha terminado la captura de procesos
         else:
             break
-    
-    i = 0
+
+    # Se checa que el id del primer elemento de la lista de nuevos sea distinto al del último elemento capturado
     while new_list[0].id <= last_id:
+        # Se agrega el proceso a lista de nuevos
         ready_list.append(new_list.pop(0))
+        # Se establece su tiempo de respuesta a 0 (valor del contador global en este instante)
         ready_list[0].start_time = global_counter
+        # Si la lista de nuevos está vacía se ha terminado la captura
         if len(new_list) == 0:
             break
-                
-    # while i < 5 and i < amount_of_processes:
-    #     ready_list.append(new_list.pop(0))
-    #     ready_list[i].start_time = global_counter
-    #     i += 1
-          
+    # Destruye todos los elementos de la pantalla para redibujar
     for widget in window.winfo_children():
         widget.destroy()  
     
-    secondScreen(window,amount_of_processes, quantum_size)
+    secondScreen(window,amount_of_processes,quantum_size)
     
-def secondScreen(window,amount_of_processes, quantum_size):
+def secondScreen(window,amount_of_processes,quantum_size):
     # Window setup
     global new_list
     global global_counter
@@ -255,7 +279,8 @@ def secondScreen(window,amount_of_processes, quantum_size):
     if len(ready_list) != 0:
         for process in ready_list:
             ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
-            
+    
+    # Actualiza el recuadro del proceso en ejecución
     executing_process.insert("end",process_to_show)
     
     counter(window, global_counter_container,executing_process,ready_process,new_process_title,finished_process, finished_process_list,blocked_processes,amount_of_processes,next_process)
@@ -283,11 +308,21 @@ def counter(window, global_counter_container,executing_process,ready_process,new
     
     window.bind('<KeyRelease>',on_key_release)
     
+    # Checa si la lista de nuevos no está vacía
     if len(new_list) > 0:
+        # Trata de insertar el primer elemento de la lista de nuevos en la tabla de paginación
         insert_process_in_table(new_list[0])
-        next_process.config(text=f"Siguiente proceso: ID({new_list[0].id}) Tamaño({new_list[0].size})")
+        # Actualiza el banner del siguiente proceso en la lista de nuevos
+        if len(new_list) > 0:
+            next_process.config(text=f"Siguiente proceso: ID({new_list[0].id}) Tamaño({new_list[0].size})")
+        else: 
+            next_process.config(text=f"Siguiente proceso: ID() Tamaño()")
+            
+        # Actualiza gráficamente la tabla de paginación
         delete_and_update_table(page_table.page_array)
+        # Actualiza el banner de la cantidad de procesos nuevos
         new_process_title.config(text=f"Nuevos: {len(new_list)}")
+        # Actualiza el recuadro de la cola de listos
         ready_process.delete('1.0','end')
         for process in ready_list:
             ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
@@ -297,7 +332,9 @@ def counter(window, global_counter_container,executing_process,ready_process,new
         if is_interrupted and len(ready_list) > 0:
             # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
             if is_generated_new_process:
-                new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                # Actualiza el banner de la cantidad de procesos nuevos
+                new_process_title.config(text=f"Nuevos: {len(new_list)}")
+                # Actualiza el recuadro de la cola de listos
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
@@ -349,11 +386,15 @@ def counter(window, global_counter_container,executing_process,ready_process,new
                 
         # 5 procesos bloqueados al mismo tiempo, por tanto la cola de listos está vacía
         elif is_interrupted and len(ready_list) == 0:
+            # Se cambia el estado del último proceso de la lista de bloqueados a bloqueado
             page_table.change_state(blocked_list[-1].id,'Bloqueado')
+            # Se actualiza la tabla de paginación
             delete_and_update_table(page_table.page_array)
             # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
             if is_generated_new_process:
-                new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                # Se actualiza el banner de la cantidad de procesos nuevos
+                new_process_title.config(text=f"Nuevos: {len(new_list)}") 
+                # Se actualiza el recuadro de la cola de listos
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
@@ -390,7 +431,9 @@ def counter(window, global_counter_container,executing_process,ready_process,new
         elif process_to_show.TRE != 0 and not is_interrupted:  
             # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
             if is_generated_new_process:
+                # Actualiza el banner de la cantidad de procesos nuevos
                 new_process_title.config(text=f"Nuevos: {len(new_list)}")  
+                # Actualiza el recuadro de la cola de listos
                 ready_process.delete('1.0',"end")
                 for process in ready_list:
                     ready_process.insert("end","ID: " + str(process.id) + " Tiempo máximo estimado: " + str(process.estimated_time) + " Tiempo Transcurrido: " + str(process.TTE) + "\n")
@@ -480,7 +523,7 @@ def counter(window, global_counter_container,executing_process,ready_process,new
                 # Actualiza la tabla de paginación
                 delete_and_update_table(page_table.page_array)
                 if len(new_list) > 0:
-                    insert_process_in_table(new_list[0],new_list)
+                    insert_process_in_table(new_list[0])
                  # Imprime el nuevo proceso a ejecutar
                 executing_process.insert("end",process_to_show)
                 
@@ -635,7 +678,8 @@ def generate_new_process(global_counter):
     global quantum_size
     global page_table
     global page_table_object
-             
+    
+    # Genera todos los datos necesarios para un nuevo proceso
     ID = number_of_processes
     number_of_processes += 1
     first_data = rd.randint(0,10000)
@@ -648,42 +692,42 @@ def generate_new_process(global_counter):
         operation_list = ['+','-','*','/','%']
     operation = rd.choices(operation_list)
     operation = operation[0]
-    
+    # Crea el nuevo proceso
     process = Process(operation,first_data,second_data,estimated_time,ID, quantum_size, size)
-    process.response_flag = False
-    len_ready_list = len(ready_list)
-    len_blocked_list = len(blocked_list)
     
+    # Checa que haya espacio suficiente para almacenar el proceso en la tabla de paginación
     if page_table.count_free_pages() >= process.page_number:
+        # Se crea una copia del tamaño del proceso
+        size = process.size
+        # Se guarda el valor del contador global en el tiempo de inicio del proceso
         process.start_time = global_counter
+        # Se añade el proceso a la lista de procesos listos
         ready_list.append(process)
+        # Busca en todos los procesos aquellos espacios libres
         for i in range(0,41):
-                if size > 0:
-                    if page_table.page_array[i][3] == 'Libre':
-                        if size >= 5:
-                            page_table.page_array.pop(i)
-                            page_table.page_array.insert(i, [i,'5/5',process.id,'Listo'])
-                        else:
-                            page_table.page_array.pop(i)
-                            page_table.page_array.insert(i, [i,f'{size}/5',process.id,'Listo'])
-                        size -= 5
-                else: 
-                    break
+            # Si el tamaño aún no es cero
+            if size > 0:
+                # Busca si esa posición en la tabla de paginación está sin ocupar
+                if page_table.page_array[i][3] == 'Libre':
+                    # En caso de que esté desocupada y el tamaño es mayor o igual a 5
+                    if size >= 5:
+                        # Sustituye el valor con los datos del proceso
+                        page_table.page_array.pop(i)
+                        page_table.page_array.insert(i, [i,'5/5',process.id,'Listo'])
+                    # En caso de que esté desocupado el espacio y el tamaño sea menor a 5, se añade el tamaño final
+                    else:
+                        page_table.page_array.pop(i)
+                        page_table.page_array.insert(i, [i,f'{size}/5',process.id,'Listo'])
+                    size -= 5
+            # Cuando el tamaño es menor a 0, el proceso ha sido totalmente capturado
+            else: 
+                break
+        # Se actualiza la tabla de paginación
         delete_and_update_table(page_table.page_array)
+    # En dado caso que no exista suficiente espacio, el proceso se añade a la lista de nuevos
     else:
         new_list.append(process)
-    
-    
-    # Si la lista de bloqueados es igual a 5 entonces se agrega el proceso a la lista de nuevos
-    # if len_blocked_list == 5: 
-    #     new_list.append(process)
-    # O en caso de que la suma de la lista de bloqueados y la lista de listos sea menor o igual a 4 se agrega el proceso a la lista de nuevos
-    # elif len_ready_list + len_blocked_list >= 4:
-    #     new_list.append(process)
-    # else:
-    #     process.start_time = global_counter
-    #     ready_list.append(process)
-               
+                
 def bcp(window, global_counter):
     global blocked_list
     global ready_list
@@ -815,8 +859,10 @@ def finishes_remaining_blocked_process(blocked_processes):
 
 def delete_and_update_table(new_values):
     global page_table_object
+    # Elimina todos los datos en la tabla de paginación
     for i in page_table_object.get_children():
         page_table_object.delete(i)
+    # Los sustituye con los nuevos valores de la tabla de paginación
     for i in range(0,45):
         page_table_object.insert(parent='',index=tk.END,values=new_values[i])
 
