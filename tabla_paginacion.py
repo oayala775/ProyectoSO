@@ -38,6 +38,3 @@ class PageTable:
         for i in range(0,45):
             if self.page_array[i][3] == 'Libre':
                 return i
-            
-    # def insert_item(self, position):
-    #     self.page_array[position][2] 
