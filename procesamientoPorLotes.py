@@ -422,10 +422,6 @@ def counter(window, global_counter_container, executing_process, ready_process, 
 
         # 5 procesos bloqueados al mismo tiempo, por tanto la cola de listos está vacía
         elif is_interrupted and len(ready_list) == 0:
-            # Se cambia el estado del último proceso de la lista de bloqueados a bloqueado
-            page_table.change_state(blocked_list[-1].id, 'Bloqueado')
-            # Se actualiza la tabla de paginación
-            delete_and_update_table(page_table.page_array)
             # Cuando se genera un proceso nuevo, se actualiza la lista de procesos listos y el contador de procesos nuevos
             if is_generated_new_process:
                 # Se actualiza el banner de la cantidad de procesos nuevos
